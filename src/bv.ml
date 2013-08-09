@@ -83,8 +83,49 @@ let size program =
     Program(i, e) -> (size_expr e) + 1
 ;;
 
-    
-(*
-let generate_programs size operators =
-  generate_expressions
-*)
+
+let rec bi_dist n =
+  if (n <= 2)
+  then [(1, 1)]
+  else let rest = bi_dist (n - 1)in
+  let first = (List.hd rest) in
+  ((fst first), (snd first) + 1)::(List.map (fun (a, b) -> (a + 1, b)) rest)
+;;
+
+
+let rec tri_dist n =
+  let bi = bi_dist (n - 1) in
+  List.concat (List.map (fun (a, b) -> List.map (fun (x, y) -> (a, x, y)) (bi_dist (b + 1))) bi)
+;;
+
+let map_product f al bl =
+  List.concat (List.map (fun a -> List.map (f a) bl) al)
+;;
+
+let map_product3 f al bl cl =
+  List.concat (List.map (fun a -> map_product (f a) bl cl) al)
+;;
+
+
+let gen_programs size op1 op2 if0 fold tfold =
+  let id1 = "x" in
+  let id2 = "y" in
+  let id3 = "z" in
+  let rec gen_expr size ids op1 op2 if0 fold =
+    let es = Zero::One::(List.map (fun x -> ID x) ids) in
+    if (size = 1) then
+      es
+    else if (size = 2) then
+      map_product (fun op e -> Op1(op, e)) op1 es
+    else if (size = 3) then 
+      let op1e = map_product (fun op e -> Op1(op, e)) op1 (gen_expr 2 ids op1 op2 if0 fold) in
+      let op2e = map_product3 (fun op e1 e2 -> Op2(op, e1, e2)) op2 es es in
+      List.append op1e op2e
+    else if (size = 4) then 
+      let op1e = map_product (fun op e -> Op1(op, e)) op1 (gen_expr 3 ids op1 op2 if0 fold) in
+      op1e
+    else
+      []
+  in []
+;;
+
