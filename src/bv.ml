@@ -71,3 +71,21 @@ let eval program input =
   in match program with
     Program(i, e) -> eval_expr e (Env.singleton i input)
 ;;
+
+let size program =
+  let rec size_expr expr =
+    match expr with
+      ID _ | Zero | One -> 1
+    | If0(e1, e2, e3) -> 1 + (size_expr e1) + (size_expr e2) + (size_expr e3)
+    | Op1(_, e) -> 1 + (size_expr e)
+    | Op2(_, e1, e2) -> 1 + (size_expr e1) + (size_expr e2)
+    | Fold(e1, e2, _, _, e3) -> 2 + (size_expr e1) + (size_expr e2) + (size_expr e3)
+  in match program with
+    Program(i, e) -> (size_expr e) + 1
+;;
+
+    
+(*
+let generate_programs size operators =
+  generate_expressions
+*)
