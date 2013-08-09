@@ -13,7 +13,11 @@ type expression =
   | If0 of expression * expression * expression
   | Fold of expression * expression * id * id * expression
   | Op1 of op1 * expression
-  | Op2 of op2 * expression * expression;;
+  | Op2 of op2 * expression * expression
+  | GenericOp1 of expression
+  | GenericOp2 of expression * expression
+  | Term;;
+
 
 type program = Program of id * expression;;
 
@@ -38,6 +42,8 @@ let program_to_string program =
     | Op2(Or, e1, e2) -> "(or " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
     | Op2(Xor, e1, e2) -> "(xor " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
     | Op2(Plus, e1, e2) -> "(plus " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
+    | GenericOp1(e) -> "(op1 " ^ (expr_to_string e) ^ ")"
+    | GenericOp2(e1, e2) -> "(op2 " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
   in match program with
     Program(i, e) -> "(lambda (" ^ i ^ ") " ^ (expr_to_string e) ^ ")"
 ;;
@@ -67,6 +73,7 @@ let eval program input =
     | Fold(e1, e2, i1, i2, e3) ->
         let func a b = eval_expr e3 (Env.add i1 a (Env.add i2 b bindings)) in
         List.fold_left func (eval_expr e2 bindings) (gen_fold_list (eval_expr e1 bindings))
+    | _ -> zero
   in match program with
     Program(i, e) -> eval_expr e (Env.singleton i input)
 ;;
@@ -107,15 +114,76 @@ let map_product3 f al bl cl =
 ;;
 
 
+
+let gen_pseudo size if0 fold tfold =
+  let id1 = "x" in
+  let id2 = "y" in
+  let id3 = "z" in
+  let rec gen_expr size ids if0 fold if0_unused =
+    let es = Zero::One::(List.map (fun x -> ID x) ids) in
+    let op1es_calc n =
+      List.map (fun e -> GenericOp1(e)) (gen_expr n ids if0 fold if0_unused) in
+    let op2es_calc n =
+      List.concat (List.map (fun (n1, n2) ->
+        map_product (fun e1 e2 -> GenericOp2(e1, e2))
+          (gen_expr n1 ids if0 fold if0_unused)
+          (gen_expr n2 ids if0 fold if0_unused)) (bi_dist n)) in
+    let op3es_calc f n ids fold if0_unused =
+      List.concat (List.map (fun (n1, n2, n3) ->
+        map_product3 f
+          (gen_expr n1 ids if0 fold if0_unused)
+          (gen_expr n2 ids if0 fold if0_unused)
+          (gen_expr n3 ids if0 fold if0_unused)) (tri_dist n)) in
+    let if0_gen e1 e2 e3 = If0(e1, e2, e3) in
+    let fold_gen idx idy e1 e2 e3 = Fold(e1, e2, idx, idy, e3) in
+    match (size, if0_unused, fold, if0) with 
+      (1, false, false, _) -> es
+    | (2, false, false, _) -> List.map (fun e -> GenericOp1(e)) es
+    | (3, false, false, _) -> List.append (op1es_calc 2) (op2es_calc 2)
+    | ((1 | 2 | 3), _, _, _) -> []
+    | (4, _, true, _) -> []
+    | (4, true, _, _) -> op3es_calc if0_gen 3 ids false false
+    | (4, false, false, false) -> List.append (op1es_calc 3) (op2es_calc 3)
+    | (4, false, false, true) -> List.concat [(op1es_calc 3);
+                                              (op2es_calc 3);
+                                              (op3es_calc if0_gen 3 ids false false)]
+    | (5, true, true, _) -> []
+    | (5, false, true, _) ->
+        List.append (op3es_calc (fold_gen id1 id2) 3 [id1;id2] false false)
+          (op3es_calc (fold_gen id2 id3) 3 (id2::id3::ids) false false)
+    | (5, _, false, if0) ->  List.concat [(op1es_calc 4);
+                                          (op2es_calc 4);
+                                          if if0 then (op3es_calc if0_gen 4 ids false false) else []]
+    | (n, if_unused, fold, if0) ->
+        List.concat [(op1es_calc (n - 1));
+                     (op2es_calc (n - 1));
+                     if if0 then (op3es_calc if0_gen (n - 1) ids fold false) else [];
+                     if fold then (op3es_calc (fold_gen id1 id2) (n - 2) [id1;id2] false if0_unused) else [];
+                     if fold then (op3es_calc (fold_gen id2 id3) (n - 2) (id2::id3::ids) false if0_unused) else []]
+
+
+  in if tfold then
+    List.map (fun e -> Program(id1, Fold(ID(id1), Zero, id1, id2, e)))
+      (gen_expr (size - 4) [id1; id2] if0 false if0)
+  else
+    List.map (fun e -> Program(id1, e)) (gen_expr (size - 1) [id1] if0 fold if0)
+;;
+        
+      
+(*
 let gen_programs size op1 op2 if0 fold tfold =
   let id1 = "x" in
   let id2 = "y" in
   let id3 = "z" in
-  let rec gen_expr size ids op1 op2 if0 fold =
+  
+  let rec gen_expr size ids op1 op2 if0 fold op1_unused op2_unused if0_unused fold_unused =
     let es = Zero::One::(List.map (fun x -> ID x) ids) in
     if (size = 1) then
-      es
+      match (op1_unused, op2_unused, if0_unused, fold_unused) with
+        ([], [], false, false) -> es
+      | _ -> []
     else if (size = 2) then
+      match (op1_unused, op2_unused, if0_unused, fold_unused) with
       map_product (fun op e -> Op1(op, e)) op1 es
     else if (size = 3) then 
       let op1e = map_product (fun op e -> Op1(op, e)) op1 (gen_expr 2 ids op1 op2 if0 fold) in
@@ -133,3 +201,5 @@ let gen_programs size op1 op2 if0 fold tfold =
     List.map (fun e -> Program(id1, e)) (gen_expr (size - 1) [id1] op1 op2 if0 fold)
 ;;
 
+
+*)
