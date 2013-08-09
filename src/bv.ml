@@ -1,4 +1,5 @@
 open Yojson.Safe;;
+open Int64;;
 
 type id = string;;
 
@@ -15,8 +16,9 @@ type expression =
   | Op1 of op1 * expression
   | Op2 of op2 * expression * expression;;
 
-
 type program = Program of id * expression;;
+
+module Env = Map.Make(String);;
 
 let program_to_string program = 
   let rec expr_to_string expr =
@@ -41,3 +43,31 @@ let program_to_string program =
     Program(i, e) -> "(lambda (" ^ i ^ ") " ^ (expr_to_string e) ^ ")"
 ;;
 
+
+let eval program input =
+  let mask = of_int 0xFF in 
+  let gen_fold_list v = 
+    [logand (shift_right v 56) mask; logand (shift_right v 48) mask; logand (shift_right v 40) mask;
+     logand (shift_right v 32) mask;  logand (shift_right v 24) mask; logand (shift_right v 16) mask;
+     logand (shift_right v 8) mask; logand v mask] in
+  let rec eval_expr expr bindings =
+    match expr with
+      ID i -> Env.find i bindings
+    | Zero -> zero
+    | One -> one
+    | If0(e1, e2, e3) -> if (eval_expr e1 bindings) = zero then eval_expr e2 bindings else eval_expr e3 bindings
+    | Op1(Not, e) -> lognot (eval_expr e bindings)
+    | Op1(Shl1, e) -> shift_left (eval_expr e bindings) 1
+    | Op1(Shr1, e) -> shift_right_logical (eval_expr e bindings) 1
+    | Op1(Shr4, e) -> shift_right_logical (eval_expr e bindings) 4
+    | Op1(Shr16, e) -> shift_right_logical (eval_expr e bindings) 16
+    | Op2(And, e1, e2) -> logand (eval_expr e1 bindings) (eval_expr e2 bindings)
+    | Op2(Or, e1, e2) -> logor (eval_expr e1 bindings) (eval_expr e2 bindings)
+    | Op2(Xor, e1, e2) -> logxor (eval_expr e1 bindings) (eval_expr e2 bindings)
+    | Op2(Plus, e1, e2) -> add (eval_expr e1 bindings) (eval_expr e2 bindings)
+    | Fold(e1, e2, i1, i2, e3) ->
+        let func a b = eval_expr e3 (Env.add i1 a (Env.add i2 b bindings)) in
+        List.fold_left func (eval_expr e2 bindings) (gen_fold_list (eval_expr e1 bindings))
+  in match program with
+    Program(i, e) -> eval_expr e (Env.singleton i input)
+;;
