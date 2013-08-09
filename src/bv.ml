@@ -126,6 +126,6 @@ let gen_programs size op1 op2 if0 fold tfold =
       op1e
     else
       []
-  in []
+  in List.map (fun e -> Program(id1, e)) (gen_expr (size - 1) [id1] op1 op2 if0 fold)
 ;;
 
