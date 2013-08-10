@@ -98,22 +98,34 @@ let print_sample_search_results () =
   print_newline ();
 ;;
 
+let command_line_args () =
+  match (Array.to_list Sys.argv) with
+      argv0::args -> args
+    | _ -> invalid_arg "Cannot comprehend the command line arguments."
 
 let main () =
-  let problem = get_training_problem 7 in
-  let ops = problem.operators in
-  let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
-  let answers = evaluate problem.id args_hex in
-  let solution = solver answers programs in
-(*
-  print_endline "==========";
-  print_int64_array answers;
-  print_int (List.length solution);
-  print_newline ();
-  print_int (Array.length programs);
-*)
-  print_newline ();
-  List.iter (fun p -> print_string (program_to_string p); print_newline ()) solution;
+  match (command_line_args ()) with
+      [] ->
+        let problem = get_training_problem 7 in
+        let ops = problem.operators in
+        let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
+        let answers = evaluate problem.id args_hex in
+        let solution = solver answers programs in
+      (*
+        print_endline "==========";
+        print_int64_array answers;
+        print_int (List.length solution);
+        print_newline ();
+        print_int (Array.length programs);
+      *)
+        print_newline ();
+        List.iter (fun p -> print_string (program_to_string p); print_newline ()) solution;
+    | ["--get_training_problem"] ->
+        print_string(problem_to_string (get_training_problem 3))
+    | ["--get_training_problem"; int_string] ->
+        print_string(problem_to_string (get_training_problem (int_of_string int_string)))
+    | _ ->
+        print_string("Unrecognized command line arguments.")
 ;;
 
 main ();;
