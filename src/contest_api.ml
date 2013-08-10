@@ -9,6 +9,7 @@
        #use "src/contest_api.ml";;
 *)
 
+open Bv;;
 open Http_client;;
 open String;;
 open Yojson.Safe;;
@@ -19,7 +20,38 @@ type problem_id = string;;
 
 type oper = Oper1 of op1 | Oper2 of op2
 
+type operator_set = {op1: op1; op2: op2; if0: bool; fold: bool; tfold: bool};;
+
 type problem = {id: problem_id; size: int; operators: oper list};;
+
+(* Datatype helper functions *)
+
+let rec join_with_commas str_list =
+  match str_list with
+      [] -> ""
+    | x::[] -> x
+    | x::y::z -> x ^ ", " ^ (join_with_commas (y::z))
+;;
+
+let rec add_most int_list =
+  match int_list with
+      [] -> []
+    | x::[] ->[x]
+    | x::y::z -> add_most (y::z);;
+
+let operator_set_to_string op_set =
+
+
+let problem_to_string problem =
+  let rec 
+  let operator_list_to_string operator_list =
+
+  "{\n"
+  ^ "  id: " ^ problem.problem_id ^ "\n"
+  ^ "  size: " ^ string_of_int(problem.size) ^ "\n"
+  ^ "  operators: " ^ (operator_list_to_string problem.operators) ^ "\n"
+  ^ "}\n"
+;;
 
 
 (* Contest API constants*)
@@ -48,6 +80,7 @@ let send_post post_url post_body =
     post_op#get_resp_body()
 ;;
 
+(* TODO(mb1): Handle if0/fold/tfold *)
 let parse_operator_string op_string =
   match op_string with
       "not"   -> Oper1 Not
@@ -91,7 +124,11 @@ let parse_problem_property_list prop_list =
 let parse_problem problem =
   match from_string(problem) with
       `Assoc problem_spec -> parse_problem_property_list problem_spec
-    | _ -> invalid_arg "Problem definition is not blah blah blah."
+    | _ -> invalid_arg "Problem definition is not properly formatted."
+;;
+
+let guess_post_body problem_id program =
+  "{\"id\": \"" ^ problem_id ^ "\", \"program\": \"" ^ (program_to_string program) ^ "\"}"
 ;;
 
 (* The interesting functions *)
@@ -102,10 +139,6 @@ let get_training_problem size =
 
 let evaluate problem inputs =
   send_post eval_post_url 
-;;
-
-let guess_post_body problem_id program =
-  "{\"id\": \"" ^ problem_id ^ "\", \"program\": \"" ^ (program_to_string program) ^ "\"}"
 ;;
 
 let guess problem_id program =
