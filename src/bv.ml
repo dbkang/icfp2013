@@ -118,7 +118,16 @@ let repeat x n =
     if (m = n) then partial else repeat_partial (m + 1) (x::partial) in
   repeat_partial 0 []
 ;;
-                                                             
+
+let rec range m n = if (m > n) then [] else m::(range (m + 1) n)
+;;
+
+let rec except_nth l n = 
+  match (l, n) with
+    (hd::tl, 0) -> tl
+  | (hd::tl, n) -> hd::(except_nth tl (n - 1))
+  | ([], _) -> []
+;;
 
 let gen_pseudo size if0 fold tfold =
   let id1 = "x" in
@@ -201,7 +210,19 @@ let gen_pseudo size if0 fold tfold =
     List.map (fun e -> Program(id1, e)) (gen_expr (size - 1) [id1] if0 fold)
 ;;
         
-      
+(* Used for both op1 and op2 *)
+let rec gen_op_combinations ops op_count =
+  if (List.length ops) > op_count then
+    []
+  else if (op_count = 0) then
+    [[]]
+  else
+    List.concat (List.map (fun n ->
+      List.append
+        (List.map (fun l -> (List.nth ops n)::l) (gen_op_combinations (except_nth ops n) (op_count - 1)))
+        (List.map (fun l -> (List.nth ops n)::l) (gen_op_combinations ops (op_count - 1)))) (range 0 ((List.length ops) - 1)))
+;;
+  
 (*
 let gen_programs size op1 op2 if0 fold tfold =
   let id1 = "x" in
