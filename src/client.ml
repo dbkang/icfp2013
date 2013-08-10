@@ -45,7 +45,7 @@ let answers_equal answers1 answers2 =
 
 let print_int64_array arr = Array.iter (fun x -> print_endline (Int64.to_string x)) arr;;
 
-let pregen_arguments = gen_arguments 5 ;;
+let pregen_arguments = gen_arguments 256 ;;
 
 let args_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a) pregen_arguments;;
 
@@ -100,7 +100,7 @@ let print_sample_search_results () =
 
 
 let main () =
-  let problem = get_training_problem 7 in
+  let problem = get_training_problem 9 in
   let ops = problem.operators in
   let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
   let answers = evaluate problem.id args_hex in
