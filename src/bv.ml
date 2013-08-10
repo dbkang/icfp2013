@@ -22,6 +22,23 @@ type program = Program of id * expression;;
 
 module Env = Map.Make(String);;
 
+let op1_to_string op1 =
+  match op1 with
+      Not   -> "not"
+    | Shl1  -> "shl1"
+    | Shr1  -> "shr1"
+    | Shr4  -> "shr4"
+    | Shr16 -> "shr16"
+;;
+
+let op2_to_string op2 =
+  match op2 with
+      And  -> "and"
+    | Or   -> "or"
+    | Xor  -> "xor"
+    | Plus -> "plus"
+;;
+
 let program_to_string program = 
   let rec expr_to_string expr =
     match expr with
@@ -32,15 +49,8 @@ let program_to_string program =
         (expr_to_string e2) ^ " " ^ (expr_to_string e3) ^ ")"
     | Fold(e1, e2, i1, i2, e3) -> "(fold " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^
         " (lambda (" ^ i1 ^ " " ^ i2 ^ ") " ^ (expr_to_string e3) ^ ")" ^ ")"
-    | Op1(Not, e) -> "(not " ^ (expr_to_string e) ^ ")"
-    | Op1(Shl1, e) -> "(shl1 " ^ (expr_to_string e) ^ ")"
-    | Op1(Shr1, e) -> "(shr1 " ^ (expr_to_string e) ^ ")"
-    | Op1(Shr4, e) -> "(shr4 " ^ (expr_to_string e) ^ ")"
-    | Op1(Shr16, e) -> "(shr16 " ^ (expr_to_string e) ^ ")"
-    | Op2(And, e1, e2) -> "(and " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
-    | Op2(Or, e1, e2) -> "(or " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
-    | Op2(Xor, e1, e2) -> "(xor " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
-    | Op2(Plus, e1, e2) -> "(plus " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
+    | Op1(op, e) -> "(" ^ (op1_to_string op) ^ " " ^ (expr_to_string e) ^ ")"
+    | Op2(op, e1, e2) -> "(" ^ (op2_to_string op) ^ " " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
     | GenericOp1(e, _) -> "(op1 " ^ (expr_to_string e) ^ ")"
     | GenericOp2(e1, e2, _) -> "(op2 " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
   in match program with
