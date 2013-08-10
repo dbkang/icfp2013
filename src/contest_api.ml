@@ -12,6 +12,7 @@
 open Http_client;;
 open String;;
 open Yojson.Safe;;
+open Bv;;
 
 (* Datatype defintions *)
 
@@ -103,3 +104,4 @@ let get_training_problem size =
 let guess problem_id program =
    send_post guess_post_url ("{\"id\": \"" ^ problem_id ^ "\", \"program\": \"" ^ (program_to_string program) ^ "\"}")
 ;;
+
