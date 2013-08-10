@@ -36,21 +36,23 @@ let gen_arguments () =
   Array.map (fun a -> Random.int64 max_int) (Array.init 255 (fun i -> i))
 ;;
 
+let answers_equal answers1 answers2 =
+  let equal = ref true in
+  Array.iteri (fun i e -> if e != answers2.(i) then equal := false) answers1;
+  !equal
+;;
+
+
 let pregen_arguments = gen_arguments () ;;
+
+let args_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a) pregen_arguments;;
 
 let solver size op1s op2s if0 fold tfold answers =
   let candidates = gen_programs_all size op1s op2s if0 fold tfold in
-  let length = Array.length candidates in
   let output = Array.map (fun p -> Array.map (eval p) pregen_arguments) candidates in
-  let args_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a) pregen_arguments in
-  let answers = ref [] in 
-(*
-  Array.iteri
-  for i = 1 to length - 1 do
-    
-  done;
-*)
-  args_hex
+  let solution = ref [] in 
+  Array.iteri (fun i p -> if answers_equal answers output.(i) then solution := (p::(!solution))) candidates;
+  !solution
 ;;
 
 let main () =
