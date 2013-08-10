@@ -1,6 +1,7 @@
 open Bv;;
 open Yojson.Safe;;
 open Int64;;
+open Contest_api;;
 
 module OrderedInt =
   struct
@@ -47,19 +48,32 @@ let pregen_arguments = gen_arguments () ;;
 
 let args_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a) pregen_arguments;;
 
-let solver size op1s op2s if0 fold tfold answers =
-  let candidates = gen_programs_all size op1s op2s if0 fold tfold in
-  let output = Array.map (fun p -> Array.map (eval p) pregen_arguments) candidates in
+let generic_solver answers arguments programs =
+  let output = Array.map (fun p -> Array.map (eval p) arguments) programs in
   let solution = ref [] in 
-  Array.iteri (fun i p -> if answers_equal answers output.(i) then solution := (p::(!solution))) candidates;
+  Array.iteri (fun i p -> if answers_equal answers output.(i) then solution := (p::(!solution))) programs;
   !solution
 ;;
 
-let main () =
+let solver answers programs =
+  generic_solver answers pregen_arguments programs
+;;
+
+let resolver size answers arguments programs =
+  generic_solver answers arguments (Array.of_list programs)
+;;
 (*
+let solve_loop =
+  let get_answers 
+  solver
+*)
+
+let print_problem_stats () =
   let problems_by_size = read_problems () in
   BySize.iter (fun size count -> print_int size; print_string ":"; print_int count; print_newline ()) problems_by_size
-*)
+;;
+
+let print_sample_search_results () =
   print_int (List.length (gen_pseudo 11 true false false));
   print_newline ();
   print_int (List.length (gen_pseudo 11 false true false));
@@ -72,5 +86,24 @@ let main () =
   print_newline ();
 ;;
 
+let test_equal () =
+  if (answers_equal [|1;2;3|] [|1;2;3|]) then print_endline "True" else print_endline "False"
+;;
+  
+
+let main () =
+  let problem = get_training_problem 7 in
+  let ops = problem.operators in
+  let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
+  let answers = evaluate problem.id args_hex in
+  let solution = solver answers programs in
+  print_int (List.length solution);
+  print_newline ();
+  print_int (Array.length programs);
+  print_newline ();
+  List.iter (fun p -> print_string (program_to_string p); print_newline ()) solution;
+;;
+
+test_equal ();;
 main ();;
 

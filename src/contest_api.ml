@@ -134,6 +134,7 @@ let parse_problem problem =
         | ProblemOperators ops -> {id = specs.id; size = specs.size; operators = ops}
         | None -> specs in
     List.fold_left iter {id = "-1"; size = -1; operators = empty_operator_set} prop_list in
+  print_string problem;
   match from_string(problem) with
       `Assoc problem_spec -> parse_problem_property_list problem_spec
     | _ -> invalid_arg "Problem definition is not properly formatted."
@@ -161,9 +162,15 @@ let get_training_problem size =
   parse_problem(send_post train_post_url (problem_size size))
 ;;
 
-(* TODO(mb1): Actually write this function. *)
 let evaluate problem_id inputs =
-  send_post eval_post_url (eval_post_body problem_id inputs)
+  let response = send_post eval_post_url (eval_post_body problem_id inputs) in
+  Array.of_list (match from_string response with
+    `Assoc([("status", `String("ok"));("output", (`List answers))]) ->
+      List.map (fun x ->
+        match x with
+          `String x -> Int64.of_string x
+        | _ -> Int64.zero) answers
+  | _ -> [])
 ;;
 
 let guess problem_id program =
