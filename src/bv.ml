@@ -14,10 +14,9 @@ type expression =
   | Fold of expression * expression * id * id * expression
   | Op1 of op1 * expression
   | Op2 of op2 * expression * expression
-  | GenericOp1 of expression
-  | GenericOp2 of expression * expression
-  | Term;;
-
+  | GenericOp1 of expression * int ref
+  | GenericOp2 of expression * expression * int ref
+;;
 
 type program = Program of id * expression;;
 
@@ -42,8 +41,8 @@ let program_to_string program =
     | Op2(Or, e1, e2) -> "(or " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
     | Op2(Xor, e1, e2) -> "(xor " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
     | Op2(Plus, e1, e2) -> "(plus " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
-    | GenericOp1(e) -> "(op1 " ^ (expr_to_string e) ^ ")"
-    | GenericOp2(e1, e2) -> "(op2 " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
+    | GenericOp1(e, _) -> "(op1 " ^ (expr_to_string e) ^ ")"
+    | GenericOp2(e1, e2, _) -> "(op2 " ^ (expr_to_string e1) ^ " " ^ (expr_to_string e2) ^ ")"
   in match program with
     Program(i, e) -> "(lambda (" ^ i ^ ") " ^ (expr_to_string e) ^ ")"
 ;;
@@ -85,6 +84,8 @@ let size program =
     | If0(e1, e2, e3) -> 1 + (size_expr e1) + (size_expr e2) + (size_expr e3)
     | Op1(_, e) -> 1 + (size_expr e)
     | Op2(_, e1, e2) -> 1 + (size_expr e1) + (size_expr e2)
+    | GenericOp1(e, _) -> 1 + (size_expr e)
+    | GenericOp2(e1, e2, _) -> 1 + (size_expr e1) + (size_expr e2)
     | Fold(e1, e2, _, _, e3) -> 2 + (size_expr e1) + (size_expr e2) + (size_expr e3)
   in match program with
     Program(i, e) -> (size_expr e) + 1
@@ -138,23 +139,21 @@ let gen_pseudo size if0 fold tfold =
       (_, 1) -> [[if0]]
     | (false, n) -> [repeat false n]
     | (true, n) -> List.append (List.map (fun l -> true::l) (if0_dist false (n - 1)))
-          (map_product (fun x l -> x::l) [true; false] (if0_dist true (n - 1)))
-  in
+          (map_product (fun x l -> x::l) [true; false] (if0_dist true (n - 1))) in
   let rec fold_dist fold n =
     match (fold, n) with
       (_, 1) -> [[fold]]
     | (false, n) -> [repeat false n]
     | (true, n) ->
         let partial = List.map (fun l -> false::l) (fold_dist true (n - 1)) in
-        (true::(repeat false (n - 1)))::partial
-  in
+        (true::(repeat false (n - 1)))::partial in
   let rec gen_expr size ids if0 fold =
     let es = Zero::One::(List.map (fun x -> ID x) ids) in
     let op1es_calc n =
-      List.map (fun e -> GenericOp1(e)) (gen_expr n ids if0 fold) in
+      List.map (fun e -> GenericOp1(e, ref 0)) (gen_expr n ids if0 fold) in
     let op2es_calc_partial n if01 if02 fold1 fold2 =
       List.concat (List.map (fun (n1, n2) ->
-        map_product (fun e1 e2 -> GenericOp2(e1, e2))
+        map_product (fun e1 e2 -> GenericOp2(e1, e2, ref 0))
           (gen_expr n1 ids if01 fold1)
           (gen_expr n2 ids if02 fold2)) (bi_dist n)) in
 
@@ -169,7 +168,7 @@ let gen_pseudo size if0 fold tfold =
           (gen_expr n1 ids if01 fold1)
           (gen_expr n2 ids if02 fold2)
           (gen_expr n3 ids if03 fold3)) (tri_dist n)) in
-
+    
     let op3es_calc f n ids if0 fold = List.concat
         (map_product (fun if0n foldn ->
           let (if0ni, foldni) = (List.nth if0n, List.nth foldn) in
@@ -181,7 +180,7 @@ let gen_pseudo size if0 fold tfold =
 
     match (size, if0, fold) with 
       (1, false, false) -> es
-    | (2, false, false) -> List.map (fun e -> GenericOp1(e)) es
+    | (2, false, false) -> List.map (fun e -> GenericOp1(e, ref 0)) es
     | (3, false, false) -> List.append (op1es_calc 2) (op2es_calc 2)
     | ((1 | 2 | 3), _, _) -> []
     | (4, _, true) -> []
@@ -209,7 +208,8 @@ let gen_pseudo size if0 fold tfold =
   else
     List.map (fun e -> Program(id1, e)) (gen_expr (size - 1) [id1] if0 fold)
 ;;
-        
+
+
 (* Used for both op1 and op2 *)
 let rec gen_op_combinations ops op_count =
   if (List.length ops) > op_count then
@@ -217,12 +217,37 @@ let rec gen_op_combinations ops op_count =
   else if (op_count = 0) then
     [[]]
   else
-    List.concat (List.map (fun n ->
-      List.append
-        (List.map (fun l -> (List.nth ops n)::l) (gen_op_combinations (except_nth ops n) (op_count - 1)))
-        (List.map (fun l -> (List.nth ops n)::l) (gen_op_combinations ops (op_count - 1)))) (range 0 ((List.length ops) - 1)))
+    List.concat
+      (List.map (fun n -> List.append
+          (List.map (fun l -> (List.nth ops n)::l) (gen_op_combinations (except_nth ops n) (op_count - 1)))
+          (List.map (fun l -> (List.nth ops n)::l) (gen_op_combinations ops (op_count - 1))))
+         (range 0 ((List.length ops) - 1)))
 ;;
-  
+
+let gen_programs (Program(id, pseudo)) op1s op2s =
+  let op1_count = ref 0 in
+  let op2_count = ref 0 in
+  let rec count_and_mark expr =
+    match expr with
+      If0(e1, e2, e3) -> count_and_mark e1; count_and_mark e2; count_and_mark e3; ()
+    | Fold(e1, e2, _, _, e3) -> count_and_mark e1; count_and_mark e2; count_and_mark e3; ()
+    | GenericOp1(e1, i) -> i := !op1_count; op1_count := !op1_count + 1; count_and_mark e1; ()
+    | GenericOp2(e1, e2, i) -> i := !op2_count; op2_count := !op2_count + 1; count_and_mark e1; count_and_mark e2; ()
+    | _ -> () in
+  let _ = count_and_mark pseudo in
+  let op1_combinations = gen_op_combinations op1s !op1_count in
+  let op2_combinations = gen_op_combinations op2s !op2_count in
+  let rec apply_comb expr op1_comb op2_comb =
+    let apply expr = apply_comb expr op1_comb op2_comb in
+    match expr with
+      If0(e1, e2, e3) -> If0(apply e1, apply e2, apply e3)
+    | Fold(e1, e2, i1, i2, e3) -> Fold(apply e1, apply e2, i1, i2, apply e3)
+    | GenericOp1(e, i) -> Op1((List.nth op1_comb !i), (apply e))
+    | GenericOp2(e1, e2, i) -> Op2((List.nth op2_comb !i), (apply e1), (apply e2))
+    | e -> e in
+  List.map (fun e -> Program(id, e)) (map_product (apply_comb pseudo) op1_combinations op2_combinations)
+;;
+
 (*
 let gen_programs size op1 op2 if0 fold tfold =
   let id1 = "x" in
