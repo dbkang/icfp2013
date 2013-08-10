@@ -50,6 +50,11 @@ let args_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a) pregen_arguments;;
 
 let generic_solver answers arguments programs =
   let output = Array.map (fun p -> Array.map (eval p) arguments) programs in
+(*
+  let hey = Array.iter (fun x -> print_endline (Int64.to_string x)) output.(12) in
+  let hey1 = print_endline "======================"; print_newline (); print_newline () in
+  let hey2 = Array.iter (fun x -> print_endline (Int64.to_string x)) answers in
+*)
   let solution = ref [] in 
   Array.iteri (fun i p -> if answers_equal answers output.(i) then solution := (p::(!solution))) programs;
   !solution
@@ -104,6 +109,5 @@ let main () =
   List.iter (fun p -> print_string (program_to_string p); print_newline ()) solution;
 ;;
 
-test_equal ();;
 main ();;
 

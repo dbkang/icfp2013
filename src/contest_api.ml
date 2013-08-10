@@ -161,7 +161,7 @@ let get_training_problem size =
 let evaluate problem_id inputs =
   let response = send_post eval_post_url (eval_post_body problem_id inputs) in
   Array.of_list (match from_string response with
-    `Assoc([("status", `String("ok"));("output", (`List answers))]) ->
+    `Assoc([("status", `String("ok"));("outputs", (`List answers))]) ->
       List.map (fun x ->
         match x with
           `String x -> Int64.of_string x
