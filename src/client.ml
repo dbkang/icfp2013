@@ -1,10 +1,11 @@
 open Bv;;
 open Yojson.Safe;;
+open Int64;;
 
 module OrderedInt =
   struct
     type t = int
-    let compare = compare
+    let compare = Pervasives.compare
   end;;
 
 module BySize = Map.Make(OrderedInt);;
@@ -37,10 +38,18 @@ let gen_arguments () =
 
 let pregen_arguments = gen_arguments () ;;
 
-let solver size op1s op2s if0 fold tfold =
+let solver size op1s op2s if0 fold tfold answers =
   let candidates = gen_programs_all size op1s op2s if0 fold tfold in
-  let answers = Array.map (fun p -> Array.map (eval p) pregen_arguments) candidates in
+  let length = Array.length candidates in
+  let output = Array.map (fun p -> Array.map (eval p) pregen_arguments) candidates in
   let args_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a) pregen_arguments in
+  let answers = ref [] in 
+(*
+  Array.iteri
+  for i = 1 to length - 1 do
+    
+  done;
+*)
   args_hex
 ;;
 
