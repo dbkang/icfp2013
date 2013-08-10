@@ -100,6 +100,9 @@ let rec bi_dist n =
   ((fst first), (snd first) + 1)::(List.map (fun (a, b) -> (a + 1, b)) rest)
 ;;
 
+let bi_dist_left n =
+  List.filter (fun (a, b) -> a <= b) (bi_dist n)
+;;
 
 let rec tri_dist n =
   let bi = bi_dist (n - 1) in
@@ -112,6 +115,15 @@ let map_product f al bl =
 
 let map_product3 f al bl cl =
   List.concat (List.map (fun a -> map_product (f a) bl cl) al)
+;;
+
+(* like map_product over the same list, but generates unique combinations *)
+let self_map_left f al =
+  let rec self_map_rec l result =
+    match l with
+      [] -> result
+    | hd::tl -> self_map_rec tl (List.append (List.map (f hd) l) result) in
+  self_map_rec al []
 ;;
 
 let repeat x n =
@@ -152,11 +164,19 @@ let gen_pseudo size if0 fold tfold =
     let op1es_calc n =
       List.map (fun e -> GenericOp1(e, ref 0)) (gen_expr n ids if0 fold) in
     let op2es_calc_partial n if01 if02 fold1 fold2 =
-      List.concat (List.map (fun (n1, n2) ->
-        map_product (fun e1 e2 -> GenericOp2(e1, e2, ref 0))
-          (gen_expr n1 ids if01 fold1)
-          (gen_expr n2 ids if02 fold2)) (bi_dist n)) in
-
+      if (n mod 2 = 1 || if01 != if02 || fold1 != fold2) then (* bi_dist is sufficient to ensure uniqueness *)
+        List.concat (List.map (fun (n1, n2) ->
+          map_product (fun e1 e2 -> GenericOp2(e1, e2, ref 0))
+            (gen_expr n1 ids if01 fold1)
+            (gen_expr n2 ids if02 fold2)) (bi_dist_left n))
+      else
+        List.concat (List.map (fun (n1, n2) ->
+          if n1 = n2 then
+            self_map_left (fun e1 e2 -> GenericOp2(e1, e2, ref 0)) (gen_expr n1 ids if01 fold1)
+          else
+            map_product (fun e1 e2 -> GenericOp2(e1, e2, ref 0))
+              (gen_expr n1 ids if01 fold1)
+              (gen_expr n2 ids if02 fold2)) (bi_dist_left n)) in
     let op2es_calc n = List.concat
         (map_product (fun if0n foldn ->
           op2es_calc_partial n (List.hd if0n) (List.nth if0n 1) (List.hd foldn) (List.nth foldn 1))
@@ -224,7 +244,7 @@ let rec gen_op_combinations ops op_count =
          (range 0 ((List.length ops) - 1)))
 ;;
 
-let gen_programs (Program(id, pseudo)) op1s op2s =
+let gen_programs op1s op2s (Program(id, pseudo)) =
   let op1_count = ref 0 in
   let op2_count = ref 0 in
   let rec count_and_mark expr =
@@ -248,36 +268,20 @@ let gen_programs (Program(id, pseudo)) op1s op2s =
   List.map (fun e -> Program(id, e)) (map_product (apply_comb pseudo) op1_combinations op2_combinations)
 ;;
 
-(*
-let gen_programs size op1 op2 if0 fold tfold =
-  let id1 = "x" in
-  let id2 = "y" in
-  let id3 = "z" in
-  
-  let rec gen_expr size ids op1 op2 if0 fold op1_unused op2_unused if0_unused fold_unused =
-    let es = Zero::One::(List.map (fun x -> ID x) ids) in
-    if (size = 1) then
-      match (op1_unused, op2_unused, if0_unused, fold_unused) with
-        ([], [], false, false) -> es
-      | _ -> []
-    else if (size = 2) then
-      match (op1_unused, op2_unused, if0_unused, fold_unused) with
-      map_product (fun op e -> Op1(op, e)) op1 es
-    else if (size = 3) then 
-      let op1e = map_product (fun op e -> Op1(op, e)) op1 (gen_expr 2 ids op1 op2 if0 fold) in
-      let op2e = map_product3 (fun op e1 e2 -> Op2(op, e1, e2)) op2 es es in
-      List.append op1e op2e
-    else if (size = 4) then 
-      let op1e = map_product (fun op e -> Op1(op, e)) op1 (gen_expr 3 ids op1 op2 if0 fold) in
-      op1e
-    else
-      []
-  in if tfold then
-    List.map (fun e -> Program(id1, Fold(ID(id1), Zero, id1, id2, e)))
-      (gen_expr (size - 2) [id1; id2] op1 op2 if0 false)
-  else
-    List.map (fun e -> Program(id1, e)) (gen_expr (size - 1) [id1] op1 op2 if0 fold)
+let gen_programs_all size op1s op2s if0 fold tfold =
+  Array.concat (List.map (fun p -> Array.of_list (gen_programs op1s op2s p)) (gen_pseudo size if0 fold tfold))
 ;;
 
+(* create 256 random arguments *)
+let gen_arguments () =
+  Array.map (fun a -> Random.int64 max_int) (Array.init 255 (fun i -> i))
+;;
 
-*)
+let pregen_arguments = gen_arguments () ;;
+
+let solver size op1s op2s if0 fold tfold =
+  let candidates = gen_programs_all size op1s op2s if0 fold tfold in
+  let answers = Array.map (fun p -> Array.map (eval p) pregen_arguments) candidates in
+  answers; ();
+;;
+
