@@ -84,7 +84,10 @@ let eval program input =
         List.fold_left func (eval_expr e2 bindings) (gen_fold_list (eval_expr e1 bindings))
     | _ -> zero
   in match program with
-    Program(i, e) -> eval_expr e (Env.singleton i input)
+    Program(i, e) ->
+      let value = eval_expr e (Env.singleton i input) in
+      (*print_endline (to_string value); *)
+      value
 ;;
 
 let size program =

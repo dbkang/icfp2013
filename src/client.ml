@@ -32,33 +32,40 @@ let read_problems () =
 ;;
 
 
-(* create 256 random arguments *)
-let gen_arguments () =
-  Array.map (fun a -> Random.int64 max_int) (Array.init 255 (fun i -> i))
+(* create n random arguments *)
+let gen_arguments n =
+  Array.map (fun a -> Random.int64 max_int) (Array.init n (fun i -> i))
 ;;
 
 let answers_equal answers1 answers2 =
   let equal = ref true in
-  Array.iteri (fun i e -> if e != answers2.(i) then equal := false) answers1;
+  Array.iteri (fun i e -> if (Int64.compare e answers2.(i)) != 0 then equal := false) answers1;
   !equal
 ;;
 
+let print_int64_array arr = Array.iter (fun x -> print_endline (Int64.to_string x)) arr;;
 
-let pregen_arguments = gen_arguments () ;;
+let pregen_arguments = gen_arguments 5 ;;
 
 let args_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a) pregen_arguments;;
 
 let generic_solver answers arguments programs =
   let output = Array.map (fun p -> Array.map (eval p) arguments) programs in
 (*
-  let hey = Array.iter (fun x -> print_endline (Int64.to_string x)) output.(12) in
   let hey1 = print_endline "======================"; print_newline (); print_newline () in
   let hey2 = Array.iter (fun x -> print_endline (Int64.to_string x)) answers in
 *)
-  let solution = ref [] in 
+  let solution = ref [] in
+(*
+  print_int64_array arguments;
+  print_endline "=============";
+  Array.iter print_int64_array output;
+*)
   Array.iteri (fun i p -> if answers_equal answers output.(i) then solution := (p::(!solution))) programs;
   !solution
 ;;
+
+
 
 let solver answers programs =
   generic_solver answers pregen_arguments programs
@@ -91,10 +98,6 @@ let print_sample_search_results () =
   print_newline ();
 ;;
 
-let test_equal () =
-  if (answers_equal [|1;2;3|] [|1;2;3|]) then print_endline "True" else print_endline "False"
-;;
-  
 
 let main () =
   let problem = get_training_problem 7 in
@@ -102,9 +105,13 @@ let main () =
   let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
   let answers = evaluate problem.id args_hex in
   let solution = solver answers programs in
+(*
+  print_endline "==========";
+  print_int64_array answers;
   print_int (List.length solution);
   print_newline ();
   print_int (Array.length programs);
+*)
   print_newline ();
   List.iter (fun p -> print_string (program_to_string p); print_newline ()) solution;
 ;;
