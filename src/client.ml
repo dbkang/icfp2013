@@ -30,8 +30,20 @@ let read_problems () =
 ;;
 
 let main () =
+(*
   let problems_by_size = read_problems () in
   BySize.iter (fun size count -> print_int size; print_string ":"; print_int count; print_newline ()) problems_by_size
+*)
+  print_int (List.length (gen_pseudo 11 true false false));
+  print_newline ();
+  print_int (List.length (gen_pseudo 11 false true false));
+  print_newline ();
+  print_int (List.length (gen_pseudo 11 true true false));
+  print_newline ();
+  print_int (List.length (gen_pseudo 11 true false true));
+  print_newline ();
+  print_int (List.length (gen_pseudo 11 false false true));
+  print_newline ();
 ;;
 
 main ();;
