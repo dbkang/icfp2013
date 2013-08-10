@@ -46,15 +46,13 @@ let operator_set_to_string op_set =
   ])
 ;;
 
-(*
 let problem_to_string problem =
   "{\n"
-  ^ "  id: " ^ problem.id ^ "\n"
-  ^ "  size: " ^ string_of_int(problem.size) ^ "\n"
+  ^ "  id:        " ^ problem.id ^ "\n"
+  ^ "  size:      " ^ string_of_int(problem.size) ^ "\n"
   ^ "  operators: " ^ (operator_set_to_string problem.operators) ^ "\n"
   ^ "}\n"
 ;;
-*)
 
 
 (* Contest API constants*)
@@ -81,28 +79,6 @@ let send_post post_url post_body =
     pipeline#add(post_op);
     pipeline#run();
     post_op#get_resp_body()
-;;
-
-(* TODO(mb1): Handle if0/fold/tfold *)
-let parse_operator_string op_string =
-  match op_string with
-      "not"   -> Oper1 Not
-    | "shl1"  -> Oper1 Shl1
-    | "shr1"  -> Oper1 Shr1
-    | "shr4"  -> Oper1 Shr4
-    | "shr16" -> Oper1 Shr16
-    | "and"   -> Oper2 And
-    | "or"    -> Oper2 Or
-    | "xor"   -> Oper2 Xor
-    | "plus"  -> Oper2 Plus
-    | _       -> invalid_arg ("'" ^ op_string ^ "' is not a known operator.")
-;;
-
-let rec parse_operator_list op_list =
-  match op_list with
-      [] -> []
-    | (`String op)::tail -> (parse_operator_string op)::(parse_operator_list tail)
-    | _ -> invalid_arg "The problem definition's operator list contains an item that does not match (`String _)."
 ;;
 
 let add_to_operator_set op_string operator_set =
@@ -165,6 +141,7 @@ let get_training_problem size =
   parse_problem(send_post train_post_url (problem_size size))
 ;;
 
+(* TODO(mb1): Actually write this function. *)
 let evaluate problem inputs =
   send_post eval_post_url 
 ;;
