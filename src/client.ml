@@ -29,6 +29,21 @@ let read_problems () =
   List.fold_left increment (BySize.empty) arr 
 ;;
 
+
+(* create 256 random arguments *)
+let gen_arguments () =
+  Array.map (fun a -> Random.int64 max_int) (Array.init 255 (fun i -> i))
+;;
+
+let pregen_arguments = gen_arguments () ;;
+
+let solver size op1s op2s if0 fold tfold =
+  let candidates = gen_programs_all size op1s op2s if0 fold tfold in
+  let answers = Array.map (fun p -> Array.map (eval p) pregen_arguments) candidates in
+  let args_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a) pregen_arguments in
+  args_hex
+;;
+
 let main () =
 (*
   let problems_by_size = read_problems () in
