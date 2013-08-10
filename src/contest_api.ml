@@ -47,7 +47,7 @@ let operator_set_to_string op_set =
 ;;
 
 let problem_to_string problem =
-  "{\n"
+    "{\n"
   ^ "  id:        " ^ problem.id ^ "\n"
   ^ "  size:      " ^ string_of_int(problem.size) ^ "\n"
   ^ "  operators: " ^ (operator_set_to_string problem.operators) ^ "\n"
@@ -141,17 +141,13 @@ let parse_problem problem =
 ;;
 
 let eval_post_body problem_id inputs =
-  "{"
+    "{"
   ^ "\"id\": \"" ^ problem_id ^ "\", "
-  ^ "\"arguments\": [" ^ (join_with_commas (Array.to_list (Array.map (fun x -> "\"" ^ x ^ "\"") inputs))) ^ "]}"
+  ^ "\"arguments\": [" ^ (join_with_commas (Array.to_list (Array.map (fun x -> "\"" ^ x ^ "\"") inputs))) ^ "]"
+  ^ "}"
 ;;
 
 let guess_post_body problem_id program =
-  let rec join_with_commas str_list =
-    match str_list with
-        [] -> ""
-      | x::[] -> x
-      | x::y::z -> x ^ ", " ^ (join_with_commas (y::z)) in
   "{\"id\": \"" ^ problem_id ^ "\", \"program\": \"" ^ (program_to_string program) ^ "\"}"
 ;;
 
