@@ -100,6 +100,14 @@ let get_training_problem size =
   parse_problem(send_post train_post_url (problem_size size))
 ;;
 
+let evaluate problem inputs =
+  send_post eval_post_url 
+;;
+
+let guess_post_body problem_id program =
+  "{\"id\": \"" ^ problem_id ^ "\", \"program\": \"" ^ (program_to_string program) ^ "\"}"
+;;
+
 let guess problem_id program =
-   send_post guess_post_url ("{\"id\": \"" ^ problem_id ^ "\", \"program\": \"" ^ (program_to_string program) ^ "\"}")
+   send_post guess_post_url (guess_post_body problem_id program)
 ;;
