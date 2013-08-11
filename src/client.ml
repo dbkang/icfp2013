@@ -112,6 +112,7 @@ let rec parse_problem_filters args =
     | "--solved"::tail -> (fun x -> x.solved && ((parse_problem_filters tail) x))
     | "--tfold"::tail -> (fun x -> x.operators.tfold && ((parse_problem_filters tail) x))
     | "--unsolved"::tail -> (fun x -> not x.solved && not x.finished && ((parse_problem_filters tail) x))
+    | "--no_bonus"::tail -> (fun x -> not x.operators.bonus && ((parse_problem_filters tail) x))
     | _ -> invalid_arg "Unrecognized problem filter."
 ;;
 
@@ -236,10 +237,25 @@ let solve_problem problem =
     | QuitSolving  -> exit 0
 ;;
 
+let solve_problem_speculatively problem =
+  print_string "Candidate problem:\n";
+  print_string (problem_to_string problem);
+  match (get_command ()) with
+      SolveProblem -> run_problem_solver_speculative problem
+    | SkipProblem  -> print_string "\n"
+    | QuitSolving  -> exit 0
+;;
+
 let solve_problem_no_confirm problem =
   print_endline "Candidate problem:\n";
   print_endline (problem_to_string problem);
   run_problem_solver problem 10
+;;
+
+let solve_problem_speculatively_no_confirm problem =
+  print_endline "Candidate problem:\n";
+  print_endline (problem_to_string problem);
+  run_problem_solver_speculative problem
 ;;
 
 let main () =
@@ -265,8 +281,12 @@ let main () =
       print_string (problem_to_string (get_training_problem_with_tfold (int_of_string int_string)))
   | "--solve_real_problems"::filter_args ->
       ignore (List.map solve_problem (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
+  | "--solve_real_problems_speculatively"::filter_args ->
+      ignore (List.map solve_problem_speculatively (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
   | "--solve_real_problems!!!"::filter_args ->
       ignore (List.map solve_problem_no_confirm (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
+  | "--solve_real_problems_speculatively!!!"::filter_args ->
+      ignore (List.map solve_problem_speculatively_no_confirm (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
   | ["--reproduce_crash"] ->
       solve_problem test_problem
   | _ ->
