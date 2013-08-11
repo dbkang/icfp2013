@@ -24,8 +24,6 @@ type problem_id = string;;
 
 type oper = Oper1 of op1 | Oper2 of op2 | If0 | Fold | TFold;;
 
-type operator_set = {op1: op1 list; op2: op2 list; if0: bool; fold: bool; tfold: bool; bonus: bool};;
-
 type problem = {id: problem_id; size: int; operators: operator_set; solution: string; solved: bool; finished: bool};;
 
 type guess_response = Win | Mismatch of int64 * int64 * int64 | Error of string
@@ -34,22 +32,6 @@ type guess_response = Win | Mismatch of int64 * int64 * int64 | Error of string
 
 let empty_operator_set = {op1 = []; op2 = []; if0 = false; fold = false; tfold = false; bonus = false};;
 
-let rec join_with_commas str_list =
-  match str_list with
-      [] -> ""
-    | x::[] -> x
-    | x::y::z -> x ^ ", " ^ (join_with_commas (y::z))
-;;
-
-let operator_set_to_string op_set =
-  join_with_commas (List.flatten [
-    (List.map op1_to_string op_set.op1);
-    (List.map op2_to_string op_set.op2);
-    (match op_set.if0 with true -> ["if0"] | false -> []);
-    (match op_set.fold with true -> ["fold"] | false -> []);
-    (match op_set.tfold with true -> ["tfold"] | false -> []);
-  ])
-;;
 
 let problem_to_string problem =
     "{\n"

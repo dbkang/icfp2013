@@ -39,6 +39,27 @@ let op2_to_string op2 =
     | Plus -> "plus"
 ;;
 
+let rec join_with_commas str_list =
+  match str_list with
+      [] -> ""
+    | x::[] -> x
+    | x::y::z -> x ^ ", " ^ (join_with_commas (y::z))
+;;
+
+type operator_set = {op1: op1 list; op2: op2 list; if0: bool; fold: bool; tfold: bool; bonus: bool};;
+
+
+let operator_set_to_string op_set =
+  join_with_commas (List.flatten [
+    (List.map op1_to_string op_set.op1);
+    (List.map op2_to_string op_set.op2);
+    (match op_set.if0 with true -> ["if0"] | false -> []);
+    (match op_set.fold with true -> ["fold"] | false -> []);
+    (match op_set.tfold with true -> ["tfold"] | false -> []);
+  ])
+;;
+
+
 let program_to_string program = 
   let rec expr_to_string expr =
     match expr with
@@ -340,7 +361,11 @@ let gen_programs_partial_do size op1s op2s if0 fold tfold f =
   let if0_combs = if if0 then [false; true] else [false] in
   let all_combs = map_product3 (fun a b c -> (a, b, c)) op1s_list_combs op2s_list_combs if0_combs in
   let try_combs_at n =
-    try List.find (fun (op1s, op2s, if0) -> f (gen_programs_all n op1s op2s if0 fold tfold)) all_combs; true with
+    try List.find (fun (op1s, op2s, if0) ->
+      print_endline ("Trying at " ^ (string_of_int n) ^ " with " ^
+                     (operator_set_to_string
+                        {op1= op1s; op2= op2s; if0= if0; fold= fold; tfold= tfold; bonus=false}));
+      f (gen_programs_all n op1s op2s if0 fold tfold)) all_combs; true with
       _ -> false in
   if tfold then
     (try_combs_at 12) || (try_combs_at 13)
