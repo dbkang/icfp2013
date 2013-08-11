@@ -131,13 +131,13 @@ let map_product3 f al bl cl =
   List.concat (List.map (fun a -> map_product (f a) bl cl) al)
 ;;
 
-(* like map_product over the same list, but generates unique combinations *)
-let self_map_left f al =
-  let rec self_map_rec l result =
-    match l with
-      [] -> result
-    | hd::tl -> self_map_rec tl (List.append (List.map (f hd) l) result) in
-  self_map_rec al []
+(* like map_product generates unique combinations, requires them to be same length *)
+let map_product_left f al bl =
+  let rec self_map_rec l1 l2 result =
+    match (l1, l2) with
+      ([], []) -> result
+    | (hd1::tl1, hd2::tl2) -> self_map_rec tl1 tl2 (List.append (List.map (f hd1) l2) result) in
+  self_map_rec al bl []
 ;;
 
 let repeat x n =
@@ -186,7 +186,8 @@ let gen_pseudo size if0 fold tfold =
       else
         List.concat (List.map (fun (n1, n2) ->
           if n1 = n2 then
-            self_map_left (fun e1 e2 -> GenericOp2(e1, e2, ref 0)) (gen_expr n1 ids if01 fold1)
+            map_product_left (fun e1 e2 -> GenericOp2(e1, e2, ref 0))
+              (gen_expr n1 ids if01 fold1) (gen_expr n1 ids if01 fold1)
           else
             map_product (fun e1 e2 -> GenericOp2(e1, e2, ref 0))
               (gen_expr n1 ids if01 fold1)
