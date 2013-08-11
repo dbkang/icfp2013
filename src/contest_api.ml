@@ -27,7 +27,7 @@ type oper = Oper1 of op1 | Oper2 of op2 | If0 | Fold | TFold;;
 
 type operator_set = {op1: op1 list; op2: op2 list; if0: bool; fold: bool; tfold: bool; bonus: bool};;
 
-type problem = {id: problem_id; size: int; operators: operator_set};;
+type problem = {id: problem_id; size: int; operators: operator_set; solution: string};;
 
 
 (* Datatype helper functions *)
@@ -57,6 +57,7 @@ let problem_to_string problem =
   ^ "  size:      " ^ (string_of_int problem.size) ^ "\n"
   ^ "  operators: " ^ (operator_set_to_string problem.operators) ^ "\n"
   ^ "  bonus:     " ^ (string_of_bool problem.operators.bonus) ^ "\n"
+  ^ (match problem.solution with "" -> "" | solution -> "  solution:  " ^ solution ^ "\n")
   ^ "}\n"
 ;;
 
@@ -135,7 +136,7 @@ let rec parse_operator_set op_list =
     | _ -> invalid_arg "The problem definition's operator list contains an item that does not match (`String _)."
 ;;
 
-type problem_property = ProblemId of string | ProblemSize of int | ProblemOperators of operator_set | None;;
+type problem_property = ProblemId of string | ProblemSize of int | ProblemOperators of operator_set | ProblemSolution of string | None;;
 
 let parse_problem_json problem =
   let parse_problem_property property =
@@ -143,15 +144,17 @@ let parse_problem_json problem =
         ("id", `String id) -> ProblemId id
       | ("size", `Int size) -> ProblemSize size
       | ("operators", `List operators) -> ProblemOperators (parse_operator_set operators)
+      | ("challenge", `String solution) -> ProblemSolution solution
       | _ -> None in
   let parse_problem_property_list prop_list =
     let rec iter specs property =
       match (parse_problem_property property) with
-          ProblemId id -> {id = id; size = specs.size; operators = specs.operators}
-        | ProblemSize size -> {id = specs.id; size = size; operators = specs.operators}
-        | ProblemOperators ops -> {id = specs.id; size = specs.size; operators = ops}
+          ProblemId id -> {id = id; size = specs.size; operators = specs.operators; solution = specs.solution}
+        | ProblemSize size -> {id = specs.id; size = size; operators = specs.operators; solution = specs.solution}
+        | ProblemOperators ops -> {id = specs.id; size = specs.size; operators = ops; solution = specs.solution}
+        | ProblemSolution solution -> {id = specs.id; size = specs.size; operators = specs.operators; solution = solution}
         | None -> specs in
-    List.fold_left iter {id = "-1"; size = -1; operators = empty_operator_set} prop_list in
+    List.fold_left iter {id = "-1"; size = -1; operators = empty_operator_set; solution = ""} prop_list in
     match problem with
       `Assoc problem_spec -> parse_problem_property_list problem_spec
     | _ -> invalid_arg "Problem definition is not properly formatted."
