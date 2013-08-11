@@ -82,12 +82,20 @@ let train_post_url      = contest_domain ^ train_path      ^ auth_key;;
 
 (* Helper functions *)
 
-let write_string_to_file string filename =
-  output_string (open_out filename) string
+let append_string_to_file string filename =
+  let file = open_out_gen [Open_wronly; Open_creat; Open_append; Open_text] 0o666 filename in
+    output_string file string;
+    close_out file
 ;;
 
 let read_string_from_file filename =
   input_line (open_in filename)
+;;
+
+let write_string_to_file string filename =
+  let file = open_out filename in
+    output_string file string;
+    close_out file
 ;;
 
 let rec send_post post_url post_body =
@@ -96,7 +104,11 @@ let rec send_post post_url post_body =
     pipeline#add(post_op);
     pipeline#run();
     match post_op#response_status_code with
-        200 -> post_op#get_resp_body()
+        200 -> append_string_to_file (
+                   (post_op#get_resp_body ()) ^ 
+                   "\n\n================================================================================\n\n"
+               ) "/tmp/post_log";
+               post_op#get_resp_body()
       | 429 -> print_endline("HTTP POST hit rate limit.  Retrying in 5 seconds.");
                Unix.sleep 5;
                send_post post_url post_body
