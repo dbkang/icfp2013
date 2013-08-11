@@ -275,6 +275,75 @@ let gen_pseudo size if0 fold tfold =
 ;;
 
 
+
+
+let gen_pseudo_bonus size if0 fold tfold =
+  let _ = if0 || fold || tfold in
+  let (if0, fold, tfold) = (true, false, false) in
+  let id1 = "x" in
+  let id2 = "y" in
+  let id3 = "z" in
+  let rec if0_dist if0 n =
+    match (if0, n) with
+      (_, 1) -> [[if0]]
+    | (false, n) -> [repeat false n]
+    | (true, n) -> List.append (List.map (fun l -> true::l) (if0_dist false (n - 1)))
+          (map_product (fun x l -> x::l) [true; false] (if0_dist true (n - 1))) in
+  let fold_dist fold n = [repeat false n] in
+
+  let if0_gen e1 e2 e3 = If0(Op2(And, One, e1), e2, e3) in
+
+  let rec op3es_calc_partial f n ids1 ids2 if01 if02 if03 fold1 fold2 fold3 =
+    List.concat (List.map (fun (n1, n2, n3) ->
+      map_product3 f
+        (gen_expr n1 ids1 if01 fold1)
+        (gen_expr n2 ids1 if02 fold2)
+        (gen_expr n3 ids2 if03 fold3)) (tri_dist n))
+  and op3es_calc f n ids1 ids2 if0 fold = List.concat
+      (map_product (fun if0n foldn ->
+        let (if0ni, foldni) = (List.nth if0n, List.nth foldn) in
+        op3es_calc_partial f n ids1 ids2 (if0ni 0) (if0ni 1) (if0ni 2) (foldni 0) (foldni 1) (foldni 2))
+         (if0_dist if0 3) (fold_dist fold 3))
+  and gen_expr size ids if0 fold =
+    let fold = false in
+    let es = One::(List.map (fun x -> ID x) ids) in
+    let op1es_calc n =
+      List.map (fun e -> GenericOp1(e, ref 0)) (gen_expr n ids if0 fold) in
+    let op2es_calc_partial n if01 if02 fold1 fold2 =
+      if (n mod 2 = 1 || if01 != if02 || fold1 != fold2) then (* bi_dist is sufficient to ensure uniqueness *)
+        List.concat (List.map (fun (n1, n2) ->
+          map_product (fun e1 e2 -> GenericOp2(e1, e2, ref 0))
+            (gen_expr n1 ids if01 fold1)
+            (gen_expr n2 ids if02 fold2)) (bi_dist_left n))
+      else
+        List.concat (List.map (fun (n1, n2) ->
+          if n1 = n2 then
+            map_product_left (fun e1 e2 -> GenericOp2(e1, e2, ref 0))
+              (gen_expr n1 ids if01 fold1) (gen_expr n1 ids if01 fold1)
+          else
+            map_product (fun e1 e2 -> GenericOp2(e1, e2, ref 0))
+              (gen_expr n1 ids if01 fold1)
+              (gen_expr n2 ids if02 fold2)) (bi_dist_left n)) in
+    let op2es_calc n = List.concat
+        (map_product (fun if0n foldn ->
+          op2es_calc_partial n (List.hd if0n) (List.nth if0n 1) (List.hd foldn) (List.nth foldn 1))
+           (if0_dist if0 2) (fold_dist fold 2)) in
+    
+
+    match (size, if0) with 
+      (1, false) -> es
+    | (2, false) -> List.map (fun e -> GenericOp1(e, ref 0)) es
+    | ((1 | 2 | 3 | 4 | 5), true) -> []
+    | (n, false) -> (op1es_calc (n - 1)) @ (op2es_calc (n - 1))
+    | (n, true) ->
+        List.concat [(op1es_calc (n - 1));
+                     (op2es_calc (n - 1));
+                     (op3es_calc if0_gen (n - 3) ids ids false false)] in
+  List.map (fun e -> Program(id1, e))
+    ((op3es_calc if0_gen (size - 4) [id1] [id1] false false) @ (op3es_calc if0_gen (size - 4) [id1] [id1] true false))
+;;
+
+
 (* Used for both op1 and op2 *)
 let rec gen_op_combinations ops op_count =
   if (List.length ops) > op_count then
@@ -313,8 +382,14 @@ let gen_programs op1s op2s (Program(id, pseudo)) =
   List.map (fun e -> Program(id, e)) (map_product (apply_comb pseudo) op1_combinations op2_combinations)
 ;;
 
-let gen_programs_all size op1s op2s if0 fold tfold =
+let gen_programs_all_generic gen_pseudo size op1s op2s if0 fold tfold =
   Array.concat (List.map (fun p -> Array.of_list (gen_programs op1s op2s p)) (gen_pseudo size if0 fold tfold))
+;;
+
+let gen_programs_all = gen_programs_all_generic gen_pseudo
+;;
+
+let gen_programs_all_bonus = gen_programs_all_generic gen_pseudo_bonus
 ;;
 
 let rec subsets l =
@@ -352,13 +427,14 @@ let compare_op2_list al bl =
         | (a, b) -> Pervasives.compare (List.length a) (List.length b)
 ;;
 
-let gen_programs_partial_do size op1s op2s if0 fold tfold f =
+let gen_programs_partial_do_generic gen_programs_all_arg size op1s op2s if0 fold tfold bonus f =
+  let _ = size + 1 in
   (* various complexity reduction strategies *)
   let op1s_list_combs = List.stable_sort compare_op1_list
       (List.filter (fun x -> List.length x < 3) (subsets op1s)) in
   let op2s_list_combs = List.stable_sort compare_op2_list
       (List.filter (fun x -> List.length x < 3) (subsets op2s)) in
-  let if0_combs = if if0 then [false; true] else [false] in
+  let if0_combs = if if0 && (not bonus) then [false; true] else [false] in
   let op1s_combs_all = List.stable_sort compare_op1_list
       (List.filter (fun x -> List.length x < 3) (subsets [Not;Shl1;Shr1;Shr4;Shr16])) in
   let op2s_combs_all = List.stable_sort compare_op2_list
@@ -381,9 +457,15 @@ let gen_programs_partial_do size op1s op2s if0 fold tfold f =
     (try_combs_at_all 10) || (try_combs_at 11) || (try_combs_at 12))
   else if fold then
     (try_combs_at_all 6) || (try_combs_at 7) || (try_combs_at 8)
-  else
+  else if not bonus then
     ((try_combs_at_all 3) || (try_combs_at_all 4) || (try_combs_at_all 5) ||  (try_combs_at_all 6) ||
     (try_combs_at_all 7) || (try_combs_at 8) || (try_combs_at 9))
+  else
+    ((try_combs_at_all 3) || (try_combs_at_all 4) || (try_combs_at_all 5) ||  (try_combs_at_all 6) ||
+    (try_combs_at_all 7) || (try_combs_at_all 8) || (try_combs_at 9) || (try_combs_at 10))
 ;;
 
+let gen_programs_partial_do = gen_programs_partial_do_generic gen_programs_all
 
+let gen_programs_partial_do_bonus = gen_programs_partial_do_generic gen_programs_all_bonus
+;;

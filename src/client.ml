@@ -117,10 +117,10 @@ let rec parse_problem_filters args =
 ;;
 
 
-let run_problem_solver_speculative problem =
+let run_problem_solver_speculative_generic gen_programs_partial_do bonus problem =
   let ops = problem.operators in
   let answers = evaluate problem.id args_hex in
-  gen_programs_partial_do problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold (fun programs ->
+  gen_programs_partial_do problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold bonus (fun programs ->
     match solver answers pregen_arguments programs with
       hd::tl ->
         (match guess problem.id hd with
@@ -130,6 +130,13 @@ let run_problem_solver_speculative problem =
     | _ -> false);
   ()
 ;;
+
+let run_problem_solver_speculative = run_problem_solver_speculative_generic gen_programs_partial_do false
+;;
+
+let run_problem_solver_speculative_bonus = run_problem_solver_speculative_generic gen_programs_partial_do_bonus true
+;;
+
 
 let run_problem_solver problem tries =
   let ops = problem.operators in
@@ -162,10 +169,16 @@ let run_problem_solver problem tries =
   iter tries answers pregen_arguments programs
 ;;
 
+
+
+
+
 let training_solver size tries =
   let problem = get_training_problem size in
   print_string (problem_to_string problem); print_newline ();
-  if (size > 11) then
+  if (size = 42) then
+    run_problem_solver_speculative_bonus problem
+  else if (size > 11) then
     run_problem_solver_speculative problem
   else
     run_problem_solver problem tries
@@ -245,6 +258,17 @@ let solve_problem_speculatively problem =
     | SkipProblem  -> print_string "\n"
     | QuitSolving  -> exit 0
 ;;
+
+
+let solve_problem_bonus_speculatively problem =
+  print_string "Candidate problem:\n";
+  print_string (problem_to_string problem);
+  match (get_command ()) with
+      SolveProblem -> run_problem_solver_speculative_bonus problem
+    | SkipProblem  -> print_string "\n"
+    | QuitSolving  -> exit 0
+;;
+
 
 let solve_problem_no_confirm problem =
   print_endline "Candidate problem:\n";
