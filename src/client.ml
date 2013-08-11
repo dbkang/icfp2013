@@ -109,9 +109,7 @@ let rec parse_problem_filters args =
     | _ -> invalid_arg "Unrecognized problem filter."
 ;;
 
-let training_solver size tries =
-  let problem = get_training_problem size in
-  print_string (problem_to_string problem); print_newline ();
+let run_problem_solver problem tries =
   let ops = problem.operators in
   let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
   let answers = evaluate problem.id args_hex in
@@ -134,6 +132,12 @@ let training_solver size tries =
       | _ -> ();
     end in
   iter tries answers pregen_arguments programs
+;;
+
+let training_solver size tries =
+  let problem = get_training_problem size in
+  print_string (problem_to_string problem); print_newline ();
+  run_problem_solver problem tries
 ;;
 
 let test_problem = {
