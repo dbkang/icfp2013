@@ -120,6 +120,7 @@ let run_problem_solver problem tries =
     let solution = solver answers arguments programs in
     match solution with
       [] ->
+        print_endline "Something's wrong, no matching program was found.  Retrying with fewer args";
         let args = gen_arguments 5 in
         iter tries (evaluate problem.id (args_to_hex args)) args programs
     | _ ->
