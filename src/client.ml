@@ -51,7 +51,7 @@ let pregen_arguments = Array.append [|0L;1L;-1L;7L;15L;255L;-7L;-15L;-255L|] (ge
 
 let args_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a) pregen_arguments;;
 
-let generic_solver answers arguments programs =
+let solver answers arguments programs =
   let output = Array.map (fun p -> Array.map (eval p) arguments) programs in
 (*
   let hey1 = print_endline "======================"; print_newline (); print_newline () in
@@ -68,13 +68,8 @@ let generic_solver answers arguments programs =
 ;;
 
 
-
-let solver answers programs =
-  generic_solver answers pregen_arguments programs
-;;
-
 let resolver size answers arguments programs =
-  generic_solver answers arguments (Array.of_list programs)
+  solver answers arguments (Array.of_list programs)
 ;;
 (*
 let solve_loop =
@@ -114,6 +109,33 @@ let rec parse_problem_filters args =
     | _ -> invalid_arg "Unrecognized problem filter."
 ;;
 
+let training_solver size tries =
+  let problem = get_training_problem size in
+  print_string (problem_to_string problem);
+  let ops = problem.operators in
+  let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
+  let answers = evaluate problem.id args_hex in
+  let rec iter tries answers arguments programs = 
+    let solution = solver answers arguments programs in
+    let guess_response = guess problem.id (List.hd solution) in
+    let response_string =
+      match guess_response with
+        Win -> "Winner!"
+      | Mismatch (input, x, y) ->
+          "What about: \nInput: " ^ (to_string input) ^ "\nAnswer: "
+          ^ (to_string x) ^ "\nYou: " ^ (to_string y)
+      | Error error -> "Error! " ^ error in
+    begin
+      List.iter (fun p -> print_endline (program_to_string p)) solution;
+      print_endline response_string;
+      match (guess_response, tries) with
+        (Mismatch(_, _, _), 0)  -> print_endline "Tried too many times, giving up"
+      | (Mismatch(input, answer, _), n) -> iter (n - 1) [|answer|] [|input|] (Array.of_list solution)
+      | _ -> ();
+    end in
+  iter tries answers pregen_arguments programs
+;;
+
 let test_problem = {
   id = "LJtR7fAlvmBAID3PWf1WBJP0";
   size = 4;
@@ -131,45 +153,22 @@ let test_problem = {
 
 let main () =
   match (command_line_args ()) with
-      [] ->
-        let problem = get_training_problem 9 in
-        print_string (problem_to_string problem);
-        let ops = problem.operators in
-        let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
-        let answers = evaluate problem.id args_hex in
-        let solution = solver answers programs in
-        let guess_response = guess problem.id (List.nth solution 0) in
-        let response_string =
-          match guess_response with
-            Win -> "Winner!"
-          | Mismatch (input, x, y) ->
-              "What about: \nInput: " ^ (to_string input) ^ "\nAnswer: "
-              ^ (to_string x) ^ "\nYou: " ^ (to_string y)
-          | Error error -> "Error! " ^ error in
-      (*
-        print_endline "==========";
-        print_int64_array answers;
-        print_int (List.length solution);
-        print_newline ();
-        print_int (Array.length programs);
-      *)
-        print_newline ();
-        List.iter (fun p -> print_endline (program_to_string p)) solution;
-        print_endline response_string
-    | ["--get_real_problems"] ->
-        ignore (List.map (fun x -> print_string (problem_to_string x)) (get_real_problems ()))
-    | "--get_real_problems"::filter_args ->
-        ignore (List.map (fun x -> print_string (problem_to_string x)) (get_real_problems_and_filter (parse_problem_filters filter_args)))
-    | ["--get_training_problem"] ->
-        print_string (problem_to_string (get_training_problem 3))
-    | ["--get_training_problem"; int_string] ->
-        print_string (problem_to_string (get_training_problem (int_of_string int_string)))
-    | "--solve_real_problems"::filter_args ->
-        ignore (List.map solve_problem (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
-    | ["--solve_test"] ->
-        solve_problem test_problem
-    | _ ->
-        print_string "Unrecognized command line arguments.\n"
+    [] -> training_solver 10 5
+  | ["--solve_training_problem"; size; tries] -> training_solver (int_of_string size) (int_of_string tries)
+  | ["--get_real_problems"] ->
+      ignore (List.map (fun x -> print_string (problem_to_string x)) (get_real_problems ()))
+  | "--get_real_problems"::filter_args ->
+      ignore (List.map (fun x -> print_string (problem_to_string x)) (get_real_problems_and_filter (parse_problem_filters filter_args)))
+  | ["--get_training_problem"] ->
+      print_string (problem_to_string (get_training_problem 3))
+  | ["--get_training_problem"; int_string] ->
+      print_string (problem_to_string (get_training_problem (int_of_string int_string)))
+  | "--solve_real_problems"::filter_args ->
+      ignore (List.map solve_problem (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
+  | ["--solve_test"] ->
+      solve_problem test_problem
+  | _ ->
+      print_string "Unrecognized command line arguments."
 ;;
 
 main ();;
