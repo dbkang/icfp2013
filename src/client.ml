@@ -107,7 +107,8 @@ let rec parse_problem_filters args =
   match args with
       [] -> (fun x -> true)
     | "--failed"::tail -> (fun x -> x.finished && not x.solved && ((parse_problem_filters tail) x))
-    | "--size"::n::tail -> (fun x -> x.size == (int_of_string n) && ((parse_problem_filters tail) x))
+    | "--id"::id::tail -> (fun x -> x.id = id && ((parse_problem_filters tail) x))
+    | "--size"::n::tail -> (fun x -> x.size = (int_of_string n) && ((parse_problem_filters tail) x))
     | "--solved"::tail -> (fun x -> x.solved && ((parse_problem_filters tail) x))
     | "--unsolved"::tail -> (fun x -> not x.solved && not x.finished && ((parse_problem_filters tail) x))
     | _ -> invalid_arg "Unrecognized problem filter."
