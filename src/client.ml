@@ -110,6 +110,7 @@ let rec parse_problem_filters args =
     | "--id"::id::tail -> (fun x -> x.id = id && ((parse_problem_filters tail) x))
     | "--size"::n::tail -> (fun x -> x.size = (int_of_string n) && ((parse_problem_filters tail) x))
     | "--solved"::tail -> (fun x -> x.solved && ((parse_problem_filters tail) x))
+    | "--tfold"::tail -> (fun x -> x.operators.tfold && ((parse_problem_filters tail) x))
     | "--unsolved"::tail -> (fun x -> not x.solved && not x.finished && ((parse_problem_filters tail) x))
     | _ -> invalid_arg "Unrecognized problem filter."
 ;;
@@ -138,7 +139,7 @@ let run_problem_solver problem tries =
       List.iter (fun p -> print_endline (program_to_string p)) solution;
           print_endline response_string;
           match (guess_response, tries) with
-            (Mismatch(_, _, _), 0)  -> print_endline "Tried too many times, giving up"
+            (Mismatch(_, _, _), 0)  -> failwith "Tried too many times, giving up"
           | (Mismatch(input, answer, _), n) -> iter (n - 1) [|answer|] [|input|] (Array.of_list solution)
           | _ -> ();
         end in
@@ -147,6 +148,24 @@ let run_problem_solver problem tries =
 
 let training_solver size tries =
   let problem = get_training_problem size in
+  print_string (problem_to_string problem); print_newline ();
+  run_problem_solver problem tries
+;;
+
+let training_solver_no_fold size tries =
+  let problem = get_training_problem_without_folds size in
+  print_string (problem_to_string problem); print_newline ();
+  run_problem_solver problem tries
+;;
+
+let training_solver_with_fold size tries =
+  let problem = get_training_problem_with_fold size in
+  print_string (problem_to_string problem); print_newline ();
+  run_problem_solver problem tries
+;;
+
+let training_solver_with_tfold size tries =
+  let problem = get_training_problem_with_tfold size in
   print_string (problem_to_string problem); print_newline ();
   run_problem_solver problem tries
 ;;
@@ -190,10 +209,19 @@ let solve_problem problem =
     | QuitSolving  -> exit 0
 ;;
 
+let solve_problem_no_confirm problem =
+  print_endline "Candidate problem:\n";
+  print_endline (problem_to_string problem);
+  run_problem_solver problem 10
+;;
+
 let main () =
   match (command_line_args ()) with
     [] -> training_solver 10 5
   | ["--solve_training_problem"; size; tries] -> training_solver (int_of_string size) (int_of_string tries)
+  | ["--solve_training_problem_without_folds"; size; tries] -> training_solver_no_fold (int_of_string size) (int_of_string tries)
+  | ["--solve_training_problem_with_fold"; size; tries] -> training_solver_with_fold (int_of_string size) (int_of_string tries)
+  | ["--solve_training_problem_with_tfold"; size; tries] -> training_solver_with_tfold (int_of_string size) (int_of_string tries)
   | ["--get_real_problems"] ->
       ignore (List.map (fun x -> print_string (problem_to_string x)) (get_real_problems ()))
   | "--get_real_problems"::filter_args ->
@@ -202,8 +230,16 @@ let main () =
       print_string (problem_to_string (get_training_problem 3))
   | ["--get_training_problem"; int_string] ->
       print_string (problem_to_string (get_training_problem (int_of_string int_string)))
+  | ["--get_training_problem_without_folds"; int_string] ->
+      print_string (problem_to_string (get_training_problem_without_folds (int_of_string int_string)))
+  | ["--get_training_problem_with_fold"; int_string] ->
+      print_string (problem_to_string (get_training_problem_with_fold (int_of_string int_string)))
+  | ["--get_training_problem_with_tfold"; int_string] ->
+      print_string (problem_to_string (get_training_problem_with_tfold (int_of_string int_string)))
   | "--solve_real_problems"::filter_args ->
       ignore (List.map solve_problem (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
+  | "--solve_real_problems!!!"::filter_args ->
+      ignore (List.map solve_problem_no_confirm (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
   | ["--reproduce_crash"] ->
       solve_problem test_problem
   | _ ->
