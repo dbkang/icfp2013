@@ -111,7 +111,7 @@ let rec parse_problem_filters args =
 
 let training_solver size tries =
   let problem = get_training_problem size in
-  print_string (problem_to_string problem);
+  print_string (problem_to_string problem); print_newline ();
   let ops = problem.operators in
   let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
   let answers = evaluate problem.id args_hex in
