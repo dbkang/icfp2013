@@ -313,7 +313,7 @@ let compare_op1_list al bl =
       | (_, _) -> match ((List.filter ((=) Shr1) al), (List.filter ((=) Shr1) bl)) with
           ([], _::_) -> -1
         | (_::_, []) -> 1
-        | (_, _) -> 0
+        | (a, b) -> Pervasives.compare (List.length a) (List.length b)
 ;;
 
 
@@ -328,19 +328,27 @@ let compare_op2_list al bl =
       | (_, _) -> match ((List.filter ((=) Xor) al), (List.filter ((=) Xor) bl)) with
           ([], _::_) -> -1
         | (_::_, []) -> 1
-        | (_, _) -> 0
+        | (a, b) -> Pervasives.compare (List.length a) (List.length b)
 ;;
 
 let gen_programs_partial_do size op1s op2s if0 fold tfold f =
   (* various complexity reduction strategies *)
-  let op1s_list_combs = List.stable_sort compare_op1_list (subsets op1s) in
-  let op2s_list_combs = List.stable_sort compare_op2_list (subsets op2s) in
+  let op1s_list_combs = List.stable_sort compare_op1_list
+      (List.filter (fun x -> List.length x < 3) (subsets op1s)) in
+  let op2s_list_combs = List.stable_sort compare_op2_list
+      (List.filter (fun x -> List.length x < 3) (subsets op2s)) in
   let if0_combs = if if0 then [false; true] else [false] in
   let all_combs = map_product3 (fun a b c -> (a, b, c)) op1s_list_combs op2s_list_combs if0_combs in
   let try_combs_at n =
-    List.iter (fun (op1s, op2s, if0) -> f (gen_programs_all 10 op1s op2s if0 fold tfold)) all_combs in
-  try_combs_at 10;
-  try_combs_at 11
+    try List.find (fun (op1s, op2s, if0) -> f (gen_programs_all n op1s op2s if0 fold tfold)) all_combs; true with
+      _ -> false in
+  if tfold then
+    (try_combs_at 12) || (try_combs_at 13)
+  else if fold then
+    (try_combs_at 9) || (try_combs_at 10)
+  else
+    (try_combs_at 8) || (try_combs_at 9)
+
 ;;
-(*  let op1s_filtered_all = if o *)
+
 

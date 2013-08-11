@@ -115,6 +115,21 @@ let rec parse_problem_filters args =
     | _ -> invalid_arg "Unrecognized problem filter."
 ;;
 
+
+let run_problem_solver_speculative problem =
+  let ops = problem.operators in
+  let answers = evaluate problem.id args_hex in
+  gen_programs_partial_do problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold (fun programs ->
+    match solver answers pregen_arguments programs with
+      hd::tl ->
+        (match guess problem.id hd with
+          Win -> print_endline ("Behold the power of guessing: " ^ (program_to_string hd)); true
+        | Mismatch (input, x, y) -> false
+        | Error error -> false)
+    | _ -> false);
+  ()
+;;
+
 let run_problem_solver problem tries =
   let ops = problem.operators in
   let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
@@ -126,8 +141,8 @@ let run_problem_solver problem tries =
         print_endline "Something's wrong, no matching program was found.  Retrying with fewer args";
         let args = gen_arguments 5 in
         iter tries (evaluate problem.id (args_to_hex args)) args programs
-    | _ ->
-        let guess_response = guess problem.id (List.hd solution) in
+    | hd::tl ->
+        let guess_response = guess problem.id hd in
         let response_string =
           match guess_response with
             Win -> "Winner!"
@@ -136,7 +151,7 @@ let run_problem_solver problem tries =
               ^ (to_string x) ^ "\nYou: " ^ (to_string y)
           | Error error -> "Error! " ^ error in
         begin
-      List.iter (fun p -> print_endline (program_to_string p)) solution;
+          List.iter (fun p -> print_endline (program_to_string p)) solution;
           print_endline response_string;
           match (guess_response, tries) with
             (Mismatch(_, _, _), 0)  -> failwith "Tried too many times, giving up"
@@ -149,25 +164,37 @@ let run_problem_solver problem tries =
 let training_solver size tries =
   let problem = get_training_problem size in
   print_string (problem_to_string problem); print_newline ();
-  run_problem_solver problem tries
+  if (size > 11) then
+    run_problem_solver_speculative problem
+  else
+    run_problem_solver problem tries
 ;;
 
 let training_solver_no_fold size tries =
   let problem = get_training_problem_without_folds size in
   print_string (problem_to_string problem); print_newline ();
-  run_problem_solver problem tries
+  if (size > 11) then
+    run_problem_solver_speculative problem
+  else
+    run_problem_solver problem tries
 ;;
 
 let training_solver_with_fold size tries =
   let problem = get_training_problem_with_fold size in
   print_string (problem_to_string problem); print_newline ();
-  run_problem_solver problem tries
+  if (size > 11) then
+    run_problem_solver_speculative problem
+  else
+    run_problem_solver problem tries
 ;;
 
 let training_solver_with_tfold size tries =
   let problem = get_training_problem_with_tfold size in
   print_string (problem_to_string problem); print_newline ();
-  run_problem_solver problem tries
+  if (size > 14) then
+    run_problem_solver_speculative problem
+  else
+    run_problem_solver problem tries
 ;;
 
 (* For reference, the solution is:
