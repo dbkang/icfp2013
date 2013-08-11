@@ -370,7 +370,7 @@ let gen_programs_partial_do size op1s op2s if0 fold tfold f =
   if tfold then
     (try_combs_at 11) || (try_combs_at 12)
   else if fold then
-    (try_combs_at 8) || (try_combs_at 9)
+    (try_combs_at 7) || (try_combs_at 8)
   else
     (try_combs_at 7) || (try_combs_at 8)
 
