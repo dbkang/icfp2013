@@ -47,10 +47,12 @@ let print_int64_array arr = Array.iter (fun x -> print_endline (Int64.to_string 
 
 (* let pregen_arguments = gen_arguments 256 ;; *)
 
+let pregen_arguments_simple = [|0L;1L;-1L;7L;15L;255L;-7L;-15L;-255L|];;
 let pregen_arguments = Array.append [|0L;1L;-1L;7L;15L;255L;-7L;-15L;-255L|] (gen_arguments 247);;
 
+let args_to_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a);;
 
-let args_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a) pregen_arguments;;
+let args_hex = args_to_hex pregen_arguments;;
 
 let solver answers arguments programs =
   let output = Array.map (fun p -> Array.map (eval p) arguments) programs in
@@ -116,22 +118,27 @@ let run_problem_solver problem tries =
   let answers = evaluate problem.id args_hex in
   let rec iter tries answers arguments programs = 
     let solution = solver answers arguments programs in
-    let guess_response = guess problem.id (List.hd solution) in
-    let response_string =
-      match guess_response with
-        Win -> "Winner!"
-      | Mismatch (input, x, y) ->
-          "What about: \nInput: " ^ (to_string input) ^ "\nAnswer: "
-          ^ (to_string x) ^ "\nYou: " ^ (to_string y)
-      | Error error -> "Error! " ^ error in
-    begin
+    match solution with
+      [] ->
+        let args = gen_arguments 5 in
+        iter tries (evaluate problem.id (args_to_hex args)) args programs
+    | _ ->
+        let guess_response = guess problem.id (List.hd solution) in
+        let response_string =
+          match guess_response with
+            Win -> "Winner!"
+          | Mismatch (input, x, y) ->
+              "What about: \nInput: " ^ (to_string input) ^ "\nAnswer: "
+              ^ (to_string x) ^ "\nYou: " ^ (to_string y)
+          | Error error -> "Error! " ^ error in
+        begin
       List.iter (fun p -> print_endline (program_to_string p)) solution;
-      print_endline response_string;
-      match (guess_response, tries) with
-        (Mismatch(_, _, _), 0)  -> print_endline "Tried too many times, giving up"
-      | (Mismatch(input, answer, _), n) -> iter (n - 1) [|answer|] [|input|] (Array.of_list solution)
-      | _ -> ();
-    end in
+          print_endline response_string;
+          match (guess_response, tries) with
+            (Mismatch(_, _, _), 0)  -> print_endline "Tried too many times, giving up"
+          | (Mismatch(input, answer, _), n) -> iter (n - 1) [|answer|] [|input|] (Array.of_list solution)
+          | _ -> ();
+        end in
   iter tries answers pregen_arguments programs
 ;;
 
