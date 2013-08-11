@@ -61,9 +61,10 @@ let program_to_string program =
 let eval program input =
   let mask = of_int 0xFF in 
   let gen_fold_list v = 
-    [logand (shift_right v 56) mask; logand (shift_right v 48) mask; logand (shift_right v 40) mask;
-     logand (shift_right v 32) mask;  logand (shift_right v 24) mask; logand (shift_right v 16) mask;
-     logand (shift_right v 8) mask; logand v mask] in
+    [logand (shift_right_logical v 56) mask; logand (shift_right_logical v 48) mask;
+     logand (shift_right_logical v 40) mask; logand (shift_right_logical v 32) mask;
+     logand (shift_right_logical v 24) mask; logand (shift_right_logical v 16) mask;
+     logand (shift_right_logical v 8) mask; logand v mask] in
   let rec eval_expr expr bindings =
     match expr with
       ID i -> Env.find i bindings
@@ -81,7 +82,7 @@ let eval program input =
     | Op2(Plus, e1, e2) -> add (eval_expr e1 bindings) (eval_expr e2 bindings)
     | Fold(e1, e2, i1, i2, e3) ->
         let func a b = eval_expr e3 (Env.add i1 a (Env.add i2 b bindings)) in
-        List.fold_left func (eval_expr e2 bindings) (gen_fold_list (eval_expr e1 bindings))
+        List.fold_right func (gen_fold_list (eval_expr e1 bindings)) (eval_expr e2 bindings) 
     | _ -> zero
   in match program with
     Program(i, e) ->

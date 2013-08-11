@@ -107,6 +107,7 @@ let main () =
   match (command_line_args ()) with
       [] ->
         let problem = get_training_problem 9 in
+        print_string (problem_to_string problem);
         let ops = problem.operators in
         let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
         let answers = evaluate problem.id args_hex in
