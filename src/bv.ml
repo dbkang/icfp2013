@@ -135,8 +135,8 @@ let map_product3 f al bl cl =
 let map_product_left f al bl =
   let rec self_map_rec l1 l2 result =
     match (l1, l2) with
-      ([], []) -> result
-    | (hd1::tl1, hd2::tl2) -> self_map_rec tl1 tl2 (List.append (List.map (f hd1) l2) result) in
+      (hd1::tl1, hd2::tl2) -> self_map_rec tl1 tl2 (List.append (List.map (f hd1) l2) result)
+    | _ -> result in
   self_map_rec al bl []
 ;;
 
