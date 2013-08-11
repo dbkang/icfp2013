@@ -368,7 +368,7 @@ let gen_programs_partial_do size op1s op2s if0 fold tfold f =
       f (gen_programs_all n op1s op2s if0 fold tfold)) all_combs; true with
       _ -> false in
   if tfold then
-    (try_combs_at 12) || (try_combs_at 13)
+    (try_combs_at 11) || (try_combs_at 12)
   else if fold then
     (try_combs_at 8) || (try_combs_at 9)
   else
