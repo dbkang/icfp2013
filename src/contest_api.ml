@@ -25,14 +25,14 @@ type problem_id = string;;
 
 type oper = Oper1 of op1 | Oper2 of op2 | If0 | Fold | TFold;;
 
-type operator_set = {op1: op1 list; op2: op2 list; if0: bool; fold: bool; tfold: bool};;
+type operator_set = {op1: op1 list; op2: op2 list; if0: bool; fold: bool; tfold: bool; bonus: bool};;
 
 type problem = {id: problem_id; size: int; operators: operator_set};;
 
 
 (* Datatype helper functions *)
 
-let empty_operator_set = {op1 = []; op2 = []; if0 = false; fold = false; tfold = false};;
+let empty_operator_set = {op1 = []; op2 = []; if0 = false; fold = false; tfold = false; bonus = false};;
 
 let rec join_with_commas str_list =
   match str_list with
@@ -54,8 +54,9 @@ let operator_set_to_string op_set =
 let problem_to_string problem =
     "{\n"
   ^ "  id:        " ^ problem.id ^ "\n"
-  ^ "  size:      " ^ string_of_int(problem.size) ^ "\n"
+  ^ "  size:      " ^ (string_of_int problem.size) ^ "\n"
   ^ "  operators: " ^ (operator_set_to_string problem.operators) ^ "\n"
+  ^ "  bonus:     " ^ (string_of_bool problem.operators.bonus) ^ "\n"
   ^ "}\n"
 ;;
 
@@ -99,29 +100,31 @@ let problem_size n = "{\"size\": " ^ (string_of_int n) ^ "}";;
 let add_to_operator_set op_string operator_set =
   match op_string with
       "not"   -> {op1 = Not :: operator_set.op1; op2 = operator_set.op2; if0 = operator_set.if0;
-                  fold = operator_set.fold; tfold = operator_set.tfold}
+                  fold = operator_set.fold; tfold = operator_set.tfold; bonus = operator_set.bonus}
     | "shl1"  -> {op1 = Shl1 :: operator_set.op1; op2 = operator_set.op2; if0 = operator_set.if0;
-                  fold = operator_set.fold; tfold = operator_set.tfold}
+                  fold = operator_set.fold; tfold = operator_set.tfold; bonus = operator_set.bonus}
     | "shr1"  -> {op1 = Shr1 :: operator_set.op1; op2 = operator_set.op2; if0 = operator_set.if0;
-                  fold = operator_set.fold; tfold = operator_set.tfold}
+                  fold = operator_set.fold; tfold = operator_set.tfold; bonus = operator_set.bonus}
     | "shr4"  -> {op1 = Shr4 :: operator_set.op1; op2 = operator_set.op2; if0 = operator_set.if0;
-                  fold = operator_set.fold; tfold = operator_set.tfold}
+                  fold = operator_set.fold; tfold = operator_set.tfold; bonus = operator_set.bonus}
     | "shr16" -> {op1 = Shr16 :: operator_set.op1; op2 = operator_set.op2; if0 = operator_set.if0;
-                  fold = operator_set.fold; tfold = operator_set.tfold}
+                  fold = operator_set.fold; tfold = operator_set.tfold; bonus = operator_set.bonus}
     | "and"   -> {op1 = operator_set.op1; op2 = And :: operator_set.op2; if0 = operator_set.if0;
-                  fold = operator_set.fold; tfold = operator_set.tfold}
+                  fold = operator_set.fold; tfold = operator_set.tfold; bonus = operator_set.bonus}
     | "or"    -> {op1 = operator_set.op1; op2 = Or :: operator_set.op2; if0 = operator_set.if0;
-                  fold = operator_set.fold; tfold = operator_set.tfold}
+                  fold = operator_set.fold; tfold = operator_set.tfold; bonus = operator_set.bonus}
     | "xor"   -> {op1 = operator_set.op1; op2 = Xor :: operator_set.op2; if0 = operator_set.if0;
-                  fold = operator_set.fold; tfold = operator_set.tfold}
+                  fold = operator_set.fold; tfold = operator_set.tfold; bonus = operator_set.bonus}
     | "plus"  -> {op1 = operator_set.op1; op2 = Plus :: operator_set.op2; if0 = operator_set.if0;
-                  fold = operator_set.fold; tfold = operator_set.tfold}
+                  fold = operator_set.fold; tfold = operator_set.tfold; bonus = operator_set.bonus}
     | "if0"   -> {op1 = operator_set.op1; op2 = operator_set.op2; if0 = true;
-                  fold = operator_set.fold; tfold = operator_set.tfold}
+                  fold = operator_set.fold; tfold = operator_set.tfold; bonus = operator_set.bonus}
     | "fold"  -> {op1 = operator_set.op1; op2 = operator_set.op2; if0 = operator_set.if0;
-                  fold = true; tfold = operator_set.tfold}
+                  fold = true; tfold = operator_set.tfold; bonus = operator_set.bonus}
     | "tfold" -> {op1 = operator_set.op1; op2 = operator_set.op2; if0 = operator_set.if0;
-                  fold = operator_set.fold; tfold = true}
+                  fold = operator_set.fold; tfold = true; bonus = operator_set.bonus}
+    | "bonus" -> {op1 = operator_set.op1; op2 = operator_set.op2; if0 = operator_set.if0;
+                  fold = operator_set.fold; tfold = operator_set.tfold; bonus = true}
     | _       -> invalid_arg ("'" ^ op_string ^ "' is not a known operator.")
 ;;
 
@@ -134,7 +137,7 @@ let rec parse_operator_set op_list =
 
 type problem_property = ProblemId of string | ProblemSize of int | ProblemOperators of operator_set | None;;
 
-let parse_problem problem =
+let parse_problem_json problem =
   let parse_problem_property property =
     match property with
         ("id", `String id) -> ProblemId id
@@ -149,10 +152,22 @@ let parse_problem problem =
         | ProblemOperators ops -> {id = specs.id; size = specs.size; operators = ops}
         | None -> specs in
     List.fold_left iter {id = "-1"; size = -1; operators = empty_operator_set} prop_list in
-  match from_string(problem) with
+    match problem with
       `Assoc problem_spec -> parse_problem_property_list problem_spec
     | _ -> invalid_arg "Problem definition is not properly formatted."
 ;;
+
+let parse_problem problem =
+  parse_problem_json (from_string problem)
+;;
+
+let parse_myproblems myproblems_string = 
+  let list_of_problems_as_parsed_json = match (from_string myproblems_string) with
+    `List x -> x
+  | _ -> invalid_arg "Failed to parse the myproblems json." in
+  List.map parse_problem_json list_of_problems_as_parsed_json
+;;
+
 
 let eval_post_body problem_id inputs =
     "{"
