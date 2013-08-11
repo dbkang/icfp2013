@@ -287,3 +287,51 @@ let gen_programs_all size op1s op2s if0 fold tfold =
   Array.concat (List.map (fun p -> Array.of_list (gen_programs op1s op2s p)) (gen_pseudo size if0 fold tfold))
 ;;
 
+let rec subsets l =
+  match l with
+    [] -> [[]]
+  | hd::tl -> let sl = (subsets tl) in sl @ (List.map (fun sle -> hd::sle) sl)
+;;
+
+let compare_op1_list al bl =
+  match ((List.filter ((=) Shr16) al), (List.filter ((=) Shr16) bl)) with
+    ([], _::_) -> -1
+  | (_::_, []) -> 1
+  | (_, _) ->
+      match ((List.filter ((=) Shr4) al), (List.filter ((=) Shr4) bl)) with
+        ([], _::_) -> -1
+      | (_::_, []) -> 1
+      | (_, _) -> match ((List.filter ((=) Shr1) al), (List.filter ((=) Shr1) bl)) with
+          ([], _::_) -> -1
+        | (_::_, []) -> 1
+        | (_, _) -> 0
+;;
+
+
+let compare_op2_list al bl =
+  match ((List.filter ((=) And) al), (List.filter ((=) And) bl)) with
+    ([], _::_) -> -1
+  | (_::_, []) -> 1
+  | (_, _) ->
+      match ((List.filter ((=) Or) al), (List.filter ((=) Or) bl)) with
+        ([], _::_) -> -1
+      | (_::_, []) -> 1
+      | (_, _) -> match ((List.filter ((=) Xor) al), (List.filter ((=) Xor) bl)) with
+          ([], _::_) -> -1
+        | (_::_, []) -> 1
+        | (_, _) -> 0
+;;
+
+let gen_programs_partial_do size op1s op2s if0 fold tfold f =
+  (* various complexity reduction strategies *)
+  let op1s_list_combs = List.stable_sort compare_op1_list (subsets op1s) in
+  let op2s_list_combs = List.stable_sort compare_op2_list (subsets op2s) in
+  let if0_combs = if if0 then [false; true] else [false] in
+  let all_combs = map_product3 (fun a b c -> (a, b, c)) op1s_list_combs op2s_list_combs if0_combs in
+  let try_combs_at n =
+    List.iter (fun (op1s, op2s, if0) -> f (gen_programs_all 10 op1s op2s if0 fold tfold)) all_combs in
+  try_combs_at 10;
+  try_combs_at 11
+;;
+(*  let op1s_filtered_all = if o *)
+
