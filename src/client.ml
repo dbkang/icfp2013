@@ -141,11 +141,11 @@ let training_solver size tries =
 ;;
 
 let test_problem = {
-  id = "LJtR7fAlvmBAID3PWf1WBJP0";
-  size = 4;
+  id = "oK9Ddi6HlHy9REFdGet398xM";
+  size = 5;
   operators = {
-    op1 = [ ];
-    op2 = [ Or ];
+    op1 = [ Shr1 ];
+    op2 = [ Plus ];
     if0 = false;
     fold = false;
     tfold = false;
@@ -154,6 +154,26 @@ let test_problem = {
   solution = "";
   solved = false
 };;
+
+type user_command = SolveProblem | SkipProblem | QuitSolving;;
+
+let rec get_command () =
+  print_string "Solve this problem (solve/skip/quit)?  ";
+  match (read_line ()) with
+      "solve" -> SolveProblem
+    | "skip"  -> SkipProblem
+    | "quit"  -> QuitSolving
+    | _ -> (get_command ())
+;;
+
+let solve_problem problem =
+  print_string "Candidate problem:\n";
+  print_string (problem_to_string problem);
+  match (get_command ()) with
+      SolveProblem -> run_problem_solver problem 10
+    | SkipProblem  -> print_string "\n"
+    | QuitSolving  -> exit 0
+;;
 
 let main () =
   match (command_line_args ()) with
@@ -176,4 +196,3 @@ let main () =
 ;;
 
 main ();;
-

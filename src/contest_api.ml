@@ -246,23 +246,3 @@ let guess problem_id program =
   | `Assoc(("status", `String("error"))::("message", `String(a))::_) -> Error a
   | _ -> Error ("Client-Side Parse Error - Blame Dan\n" ^ response)
 ;;
-
-type user_command = SolveProblem | SkipProblem | QuitSolving;;
-
-let rec get_command () =
-  print_string "Solve this problem (solve/skip/quit)?  ";
-  match (read_line ()) with
-      "solve" -> SolveProblem
-    | "skip"  -> SkipProblem
-    | "quit"  -> QuitSolving
-    | _ -> (get_command ())
-;;
-
-let solve_problem problem =
-  print_string "Candidate problem:\n";
-  print_string (problem_to_string problem);
-  match (get_command ()) with
-      SolveProblem -> print_string "Not implemented yet.\n\n"
-    | SkipProblem  -> print_string "\n"
-    | QuitSolving  -> exit 0
-;;
