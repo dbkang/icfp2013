@@ -151,14 +151,17 @@ let training_solver size tries =
   run_problem_solver problem tries
 ;;
 
+(* For reference, the solution is:
+  (lambda (x_7568) (fold (plus 0 x_7568) 0 (lambda (x_7569 x_7570) (xor (shl1 x_7569) x_7570))))
+*)
 let test_problem = {
-  id = "oK9Ddi6HlHy9REFdGet398xM";
-  size = 5;
+  id = "TSYXnQEQoi8ejGD8wxjyayfp";
+  size = 11;
   operators = {
-    op1 = [ Shr1 ];
-    op2 = [ Plus ];
+    op1 = [ Shl1 ];
+    op2 = [ Plus; Xor ];
     if0 = false;
-    fold = false;
+    fold = true;
     tfold = false;
     bonus = false
   };
@@ -201,10 +204,10 @@ let main () =
       print_string (problem_to_string (get_training_problem (int_of_string int_string)))
   | "--solve_real_problems"::filter_args ->
       ignore (List.map solve_problem (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
-  | ["--solve_test"] ->
+  | ["--reproduce_crash"] ->
       solve_problem test_problem
   | _ ->
-      print_string "Unrecognized command line arguments."
+      print_string "Unrecognized command line arguments.\n"
 ;;
 
 main ();;
