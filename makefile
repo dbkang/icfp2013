@@ -10,13 +10,13 @@ all: $(OBJ_DIR) $(BIN_DIR) $(BIN_DIR)/solver
 $(BIN_DIR)/solver: $(OBJ_DIR)/bv.cmx $(OBJ_DIR)/contest_api.cmx $(OBJ_DIR)/client.cmx 
 	$(OCAML) $(CFLAGS) -o $@ -linkpkg $^ 
 
-$(OBJ_DIR)/client.cmx: $(OBJ_DIR)/bv.cmx $(SRC_DIR)/client.ml
+$(OBJ_DIR)/client.cmx: $(OBJ_DIR)/bv.cmx $(OBJ_DIR)/contest_api.cmx $(SRC_DIR)/client.ml
 	$(OCAML) -c $(CFLAGS) -o $@ $(SRC_DIR)/client.ml
 
 $(OBJ_DIR)/bv.cmx: $(SRC_DIR)/bv.ml
 	$(OCAML) -c $(CFLAGS) -o $@ $^
 
-$(OBJ_DIR)/contest_api.cmx:  $(OBJ_DIR)/bv.cmx 
+$(OBJ_DIR)/contest_api.cmx: $(OBJ_DIR)/bv.cmx $(SRC_DIR)/contest_api.ml
 	$(OCAML) -c $(CFLAGS) -o $@ $(SRC_DIR)/contest_api.ml
 
 $(OBJ_DIR):

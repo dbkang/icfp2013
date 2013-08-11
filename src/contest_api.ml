@@ -29,6 +29,7 @@ type operator_set = {op1: op1 list; op2: op2 list; if0: bool; fold: bool; tfold:
 
 type problem = {id: problem_id; size: int; operators: operator_set};;
 
+type guess_response = Win | Mismatch of int64 * int64 * int64 | Error of string
 
 (* Datatype helper functions *)
 
@@ -216,6 +217,10 @@ let evaluate problem_id inputs =
 
 let guess problem_id program =
   let response = send_post guess_post_url (guess_post_body problem_id program) in
-  response
-      
+  match from_string response with
+    `Assoc([("status", `String("win"))]) -> Win
+  | `Assoc([("status", `String("mismatch"));("values", (`List [`String(a); `String(b); `String(c)]))]) ->
+      Mismatch((Int64.of_string a), (Int64.of_string b), (Int64.of_string c))
+  | `Assoc([("status", `String("error"));("message", `String(a))]) -> Error a
+  | _ -> Error "Client-Side Parse Error - Blame Dan"
 ;;
