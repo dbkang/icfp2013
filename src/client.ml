@@ -114,6 +114,21 @@ let rec parse_problem_filters args =
     | _ -> invalid_arg "Unrecognized problem filter."
 ;;
 
+let test_problem = {
+  id = "LJtR7fAlvmBAID3PWf1WBJP0";
+  size = 4;
+  operators = {
+    op1 = [ ];
+    op2 = [ Or ];
+    if0 = false;
+    fold = false;
+    tfold = false;
+    bonus = false
+  };
+  solution = "";
+  solved = false
+};;
+
 let main () =
   match (command_line_args ()) with
       [] ->
@@ -149,8 +164,12 @@ let main () =
         print_string (problem_to_string (get_training_problem 3))
     | ["--get_training_problem"; int_string] ->
         print_string (problem_to_string (get_training_problem (int_of_string int_string)))
+    | "--solve_real_problems"::filter_args ->
+        ignore (List.map solve_problem (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
+    | ["--solve_test"] ->
+        solve_problem test_problem
     | _ ->
-        print_string "Unrecognized command line arguments."
+        print_string "Unrecognized command line arguments.\n"
 ;;
 
 main ();;
