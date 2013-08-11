@@ -359,22 +359,31 @@ let gen_programs_partial_do size op1s op2s if0 fold tfold f =
   let op2s_list_combs = List.stable_sort compare_op2_list
       (List.filter (fun x -> List.length x < 3) (subsets op2s)) in
   let if0_combs = if if0 then [false; true] else [false] in
+  let op1s_combs_all = List.stable_sort compare_op1_list
+      (List.filter (fun x -> List.length x < 3) (subsets [Not;Shl1;Shr1;Shr4;Shr16])) in
+  let op2s_combs_all = List.stable_sort compare_op2_list
+      (List.filter (fun x -> List.length x < 3) (subsets [Plus;Xor;Or;And])) in
+
   let all_combs = map_product3 (fun a b c -> (a, b, c)) op1s_list_combs op2s_list_combs if0_combs in
-  let try_combs_at n =
+  let all_combs_all = map_product3 (fun a b c -> (a, b, c)) op1s_combs_all op2s_combs_all if0_combs in
+
+  let try_combs combs n =
     try List.find (fun (op1s, op2s, if0) ->
       print_endline ("Trying at " ^ (string_of_int n) ^ " with " ^
                      (operator_set_to_string
                         {op1= op1s; op2= op2s; if0= if0; fold= fold; tfold= tfold; bonus=false}));
-      f (gen_programs_all n op1s op2s if0 fold tfold)) all_combs; true with
+      f (gen_programs_all n op1s op2s if0 fold tfold)) combs; true with
       _ -> false in
+  let try_combs_at = try_combs all_combs in
+  let try_combs_at_all = try_combs all_combs_all in
   if tfold then
-    ((try_combs_at 6) || (try_combs_at 7) || (try_combs_at 8) || (try_combs_at 9) ||
-    (try_combs_at 10) || (try_combs_at 11) || (try_combs_at 12))
+    ((try_combs_at_all 6) || (try_combs_at_all 7) || (try_combs_at_all 8) || (try_combs_at_all 9) ||
+    (try_combs_at_all 10) || (try_combs_at 11) || (try_combs_at 12))
   else if fold then
-    (try_combs_at 6) || (try_combs_at 7) || (try_combs_at 8)
+    (try_combs_at_all 6) || (try_combs_at 7) || (try_combs_at 8)
   else
-    ((try_combs_at 3) || (try_combs_at 4) || (try_combs_at 5) ||  (try_combs_at 6) ||
-    (try_combs_at 7) || (try_combs_at 8) || (try_combs_at 9))
+    ((try_combs_at_all 3) || (try_combs_at_all 4) || (try_combs_at_all 5) ||  (try_combs_at_all 6) ||
+    (try_combs_at_all 7) || (try_combs_at 8) || (try_combs_at 9))
 ;;
 
 
