@@ -57,8 +57,17 @@ let program_to_string program =
     Program(i, e) -> "(lambda (" ^ i ^ ") " ^ (expr_to_string e) ^ ")"
 ;;
 
+let write_string_to_file string filename =
+  let file = open_out filename in
+    output_string file string;
+    close_out file
+;;
 
 let eval program input =
+  (*(write_string_to_file (
+    "program:\n" ^ (program_to_string program) ^ "\n\n"
+    ^ "input: " ^ (Printf.sprintf "0x%LX" input)
+  ) "/tmp/eval_log");*)
   let mask = of_int 0xFF in 
   let gen_fold_list v = 
     [logand (shift_right_logical v 56) mask; logand (shift_right_logical v 48) mask;
