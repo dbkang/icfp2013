@@ -111,6 +111,14 @@ let main () =
         let programs = gen_programs_all problem.size ops.op1 ops.op2 ops.if0 ops.fold ops.tfold in
         let answers = evaluate problem.id args_hex in
         let solution = solver answers programs in
+        let guess_response = guess problem.id (List.nth solution 0) in
+        let response_string =
+          match guess_response with
+            Win -> "Winner!"
+          | Mismatch (input, x, y) ->
+              "What about: \nInput: " ^ (to_string input) ^ "\nAnswer: "
+              ^ (to_string x) ^ "\nYou: " ^ (to_string y)
+          | Error error -> "Error! " ^ error in
       (*
         print_endline "==========";
         print_int64_array answers;
@@ -119,7 +127,8 @@ let main () =
         print_int (Array.length programs);
       *)
         print_newline ();
-        List.iter (fun p -> print_string (program_to_string p); print_newline ()) solution;
+        List.iter (fun p -> print_endline (program_to_string p)) solution;
+        print_endline response_string
     | ["--get_real_problems"] ->
         ignore (List.map (fun x -> print_string (problem_to_string x)) (parse_myproblems (get_real_problems ())));
         print_string ""

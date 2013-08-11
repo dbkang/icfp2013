@@ -225,5 +225,5 @@ let guess problem_id program =
   | `Assoc([("status", `String("mismatch"));("values", (`List [`String(a); `String(b); `String(c)]))]) ->
       Mismatch((Int64.of_string a), (Int64.of_string b), (Int64.of_string c))
   | `Assoc([("status", `String("error"));("message", `String(a))]) -> Error a
-  | _ -> Error "Client-Side Parse Error - Blame Dan"
+  | _ -> Error ("Client-Side Parse Error - Blame Dan\n" ^ response)
 ;;
