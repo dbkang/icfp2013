@@ -200,5 +200,7 @@ let evaluate problem_id inputs =
 ;;
 
 let guess problem_id program =
-   send_post guess_post_url (guess_post_body problem_id program)
+  let response = send_post guess_post_url (guess_post_body problem_id program) in
+  response
+      
 ;;
