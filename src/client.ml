@@ -103,6 +103,7 @@ let command_line_args () =
 let rec parse_problem_filters args =
   match args with
       [] -> (fun x -> true)
+    | "--failed"::tail -> (fun x -> x.finished && not x.solved && ((parse_problem_filters tail) x))
     | "--size"::n::tail -> (fun x -> x.size == (int_of_string n) && ((parse_problem_filters tail) x))
     | "--solved"::tail -> (fun x -> x.solved && ((parse_problem_filters tail) x))
     | "--unsolved"::tail -> (fun x -> not x.solved && ((parse_problem_filters tail) x))
@@ -152,7 +153,8 @@ let test_problem = {
     bonus = false
   };
   solution = "";
-  solved = false
+  solved = false;
+  finished = false
 };;
 
 type user_command = SolveProblem | SkipProblem | QuitSolving;;

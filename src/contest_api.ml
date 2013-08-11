@@ -26,7 +26,7 @@ type oper = Oper1 of op1 | Oper2 of op2 | If0 | Fold | TFold;;
 
 type operator_set = {op1: op1 list; op2: op2 list; if0: bool; fold: bool; tfold: bool; bonus: bool};;
 
-type problem = {id: problem_id; size: int; operators: operator_set; solution: string; solved: bool};;
+type problem = {id: problem_id; size: int; operators: operator_set; solution: string; solved: bool; finished: bool};;
 
 type guess_response = Win | Mismatch of int64 * int64 * int64 | Error of string
 
@@ -59,6 +59,7 @@ let problem_to_string problem =
   ^ (match problem.operators.bonus with false -> "" | true -> "  bonus:     true\n")
   ^ (match problem.solution with "" -> "" | solution -> "  solution:  " ^ solution ^ "\n")
   ^ (match problem.solved with false -> "" | true -> "  solved:    true\n")
+  ^ (match problem.finished && not problem.solved with false -> "" | true -> "  failed:    true\n")
   ^ "}\n"
 ;;
 
@@ -148,6 +149,7 @@ type problem_property =
   | ProblemOperators of operator_set
   | ProblemSolution of string
   | ProblemSolved of bool
+  | ProblemFinished of bool
   | None;;
 
 let parse_problem_json problem =
@@ -158,17 +160,31 @@ let parse_problem_json problem =
       | ("operators", `List operators) -> ProblemOperators (parse_operator_set operators)
       | ("challenge", `String solution) -> ProblemSolution solution
       | ("solved", `Bool solved) -> ProblemSolved solved
+      | ("timeLeft", `Int 0) -> ProblemFinished true
       | _ -> None in
   let parse_problem_property_list prop_list =
     let rec iter specs property =
       match (parse_problem_property property) with
-          ProblemId id -> {id = id; size = specs.size; operators = specs.operators; solution = specs.solution; solved = specs.solved}
-        | ProblemSize size -> {id = specs.id; size = size; operators = specs.operators; solution = specs.solution; solved = specs.solved}
-        | ProblemOperators ops -> {id = specs.id; size = specs.size; operators = ops; solution = specs.solution; solved = specs.solved}
-        | ProblemSolution solution -> {id = specs.id; size = specs.size; operators = specs.operators; solution = solution; solved = specs.solved}
-        | ProblemSolved solved -> {id = specs.id; size = specs.size; operators = specs.operators; solution = specs.solution; solved = solved}
+          ProblemId id -> {
+            id = id; size = specs.size; operators = specs.operators;
+            solution = specs.solution; solved = specs.solved; finished = specs.finished}
+        | ProblemSize size -> {
+            id = specs.id; size = size; operators = specs.operators;
+            solution = specs.solution; solved = specs.solved; finished = specs.finished}
+        | ProblemOperators ops -> {
+            id = specs.id; size = specs.size; operators = ops;
+            solution = specs.solution; solved = specs.solved; finished = specs.finished}
+        | ProblemSolution solution -> {
+            id = specs.id; size = specs.size; operators = specs.operators;
+            solution = solution; solved = specs.solved; finished = specs.finished}
+        | ProblemSolved solved -> {
+            id = specs.id; size = specs.size; operators = specs.operators;
+            solution = specs.solution; solved = solved; finished = specs.finished}
+        | ProblemFinished finished -> {
+            id = specs.id; size = specs.size; operators = specs.operators;
+            solution = specs.solution; solved = specs.solved; finished = finished}
         | None -> specs in
-    List.fold_left iter {id = "-1"; size = -1; operators = empty_operator_set; solution = ""; solved = false} prop_list in
+    List.fold_left iter {id = "-1"; size = -1; operators = empty_operator_set; solution = ""; solved = false; finished = false} prop_list in
     match problem with
       `Assoc problem_spec -> parse_problem_property_list problem_spec
     | _ -> invalid_arg "Problem definition is not properly formatted."
