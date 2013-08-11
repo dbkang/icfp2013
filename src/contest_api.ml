@@ -234,9 +234,9 @@ let evaluate problem_id inputs =
 let guess problem_id program =
   let response = send_post guess_post_url (guess_post_body problem_id program) in
   match from_string response with
-    `Assoc([("status", `String("win"))]) -> Win
-  | `Assoc([("status", `String("mismatch"));("values", (`List [`String(a); `String(b); `String(c)]))]) ->
+    `Assoc(("status", `String("win"))::_) -> Win
+  | `Assoc(("status", `String("mismatch"))::("values", (`List [`String(a); `String(b); `String(c)]))::_) ->
       Mismatch((Int64.of_string a), (Int64.of_string b), (Int64.of_string c))
-  | `Assoc([("status", `String("error"));("message", `String(a))]) -> Error a
-  | _ -> Error "Client-Side Parse Error - Blame Dan"
+  | `Assoc(("status", `String("error"))::("message", `String(a))::_) -> Error a
+  | _ -> Error ("Client-Side Parse Error - Blame Dan\n" ^ response)
 ;;
