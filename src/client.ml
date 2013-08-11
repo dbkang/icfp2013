@@ -45,7 +45,9 @@ let answers_equal answers1 answers2 =
 
 let print_int64_array arr = Array.iter (fun x -> print_endline (Int64.to_string x)) arr;;
 
-let pregen_arguments = gen_arguments 256 ;;
+(* let pregen_arguments = gen_arguments 256 ;; *)
+
+let pregen_arguments = Array.append [|0L;1L;-1L;7L;15L;255L;-7L;-15L;-255L|] (gen_arguments 247);;
 
 let args_hex = Array.map (fun a -> Printf.sprintf "0x%LX" a) pregen_arguments;;
 

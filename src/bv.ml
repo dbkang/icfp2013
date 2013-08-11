@@ -238,7 +238,7 @@ let gen_pseudo size if0 fold tfold =
                      if fold then (op3es_calc (fold_gen id2 id3) (n - 2) (id2::id3::ids) if0 false) else []]
   in if tfold then
     List.map (fun e -> Program(id1, Fold(ID(id1), Zero, id1, id2, e)))
-      (gen_expr (size - 4) [id1; id2] if0 false)
+      (gen_expr (size - 5) [id1; id2] if0 false)
   else
     List.map (fun e -> Program(id1, e)) (gen_expr (size - 1) [id1] if0 fold)
 ;;
