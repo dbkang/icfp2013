@@ -120,12 +120,18 @@ let main () =
       *)
         print_newline ();
         List.iter (fun p -> print_string (program_to_string p); print_newline ()) solution;
+    | ["--get_real_problems"] ->
+        print_string (get_real_problems ())
+    | ["--get_real_problems"; "--no_cache"] ->
+        print_string (get_real_problems_skip_cache ())
+    | ["--get_real_problems"; "--use_cache"] ->
+        print_string (get_real_problems_from_cache ())
     | ["--get_training_problem"] ->
-        print_string(problem_to_string (get_training_problem 3))
+        print_string (problem_to_string (get_training_problem 3))
     | ["--get_training_problem"; int_string] ->
-        print_string(problem_to_string (get_training_problem (int_of_string int_string)))
+        print_string (problem_to_string (get_training_problem (int_of_string int_string)))
     | _ ->
-        print_string("Unrecognized command line arguments.")
+        print_string "Unrecognized command line arguments."
 ;;
 
 main ();;

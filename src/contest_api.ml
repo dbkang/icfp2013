@@ -14,6 +14,11 @@ open Http_client;;
 open String;;
 open Yojson.Safe;;
 
+(* Constants *)
+
+let myproblems_cache_filename = "/tmp/myproblems.json";;
+
+
 (* Datatype defintions *)
 
 type problem_id = string;;
@@ -60,18 +65,26 @@ let problem_to_string problem =
 let contest_domain = "http://icfpc2013.cloudapp.net";;
 let auth_key = "?auth=0191yxaUHzX7C1if61Js0utpeBAUYTCAAlmgdvbAvpsH1H";;
 
-let eval_path  = "/eval";;
-let guess_path = "/guess";;
-let train_path = "/train";;
+let eval_path       = "/eval";;
+let guess_path      = "/guess";;
+let myproblems_path = "/myproblems";;
+let train_path      = "/train";;
 
-let eval_post_url  = contest_domain ^ eval_path  ^ auth_key;;
-let guess_post_url = contest_domain ^ guess_path ^ auth_key;;
-let train_post_url = contest_domain ^ train_path ^ auth_key;;
+let eval_post_url       = contest_domain ^ eval_path       ^ auth_key;;
+let guess_post_url      = contest_domain ^ guess_path      ^ auth_key;;
+let myproblems_post_url = contest_domain ^ myproblems_path ^ auth_key;;
+let train_post_url      = contest_domain ^ train_path      ^ auth_key;;
 
 
 (* Helper functions *)
 
-let problem_size n = "{\"size\": " ^ (string_of_int n) ^ "}";;
+let write_string_to_file string filename =
+  output_string (open_out filename) string
+;;
+
+let read_string_from_file filename =
+  input_line (open_in filename)
+;;
 
 let send_post post_url post_body =
   let pipeline = new pipeline in
@@ -80,6 +93,8 @@ let send_post post_url post_body =
     pipeline#run();
     post_op#get_resp_body()
 ;;
+
+let problem_size n = "{\"size\": " ^ (string_of_int n) ^ "}";;
 
 let add_to_operator_set op_string operator_set =
   match op_string with
@@ -134,7 +149,6 @@ let parse_problem problem =
         | ProblemOperators ops -> {id = specs.id; size = specs.size; operators = ops}
         | None -> specs in
     List.fold_left iter {id = "-1"; size = -1; operators = empty_operator_set} prop_list in
-  print_string problem;
   match from_string(problem) with
       `Assoc problem_spec -> parse_problem_property_list problem_spec
     | _ -> invalid_arg "Problem definition is not properly formatted."
@@ -156,6 +170,22 @@ let guess_post_body problem_id program =
 
 let get_training_problem size =
   parse_problem(send_post train_post_url (problem_size size))
+;;
+
+let get_real_problems_from_cache () =
+  read_string_from_file myproblems_cache_filename
+;;
+
+let get_real_problems_skip_cache () =
+  let myproblems_string = (send_post myproblems_post_url "") in
+    write_string_to_file myproblems_string myproblems_cache_filename;
+    myproblems_string
+;;
+
+let get_real_problems () =
+  match (Sys.file_exists myproblems_cache_filename) with
+      true -> (get_real_problems_from_cache ())
+    | false -> (get_real_problems_skip_cache ())
 ;;
 
 let evaluate problem_id inputs =
