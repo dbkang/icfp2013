@@ -103,6 +103,15 @@ let command_line_args () =
       argv0::args -> args
     | _ -> invalid_arg "Cannot comprehend the command line arguments."
 
+let rec parse_problem_filters args =
+  match args with
+      [] -> (fun x -> true)
+    | "--size"::n::tail -> (fun x -> x.size == (int_of_string n) && ((parse_problem_filters tail) x))
+    | "--solved"::tail -> (fun x -> x.solved && ((parse_problem_filters tail) x))
+    | "--unsolved"::tail -> (fun x -> not x.solved && ((parse_problem_filters tail) x))
+    | _ -> invalid_arg "Unrecognized problem filter."
+;;
+
 let main () =
   match (command_line_args ()) with
       [] ->
@@ -121,12 +130,9 @@ let main () =
         print_newline ();
         List.iter (fun p -> print_string (program_to_string p); print_newline ()) solution;
     | ["--get_real_problems"] ->
-        ignore (List.map (fun x -> print_string (problem_to_string x)) (parse_myproblems (get_real_problems ())));
-        print_string ""
-    | ["--get_real_problems"; "--no_cache"] ->
-        print_string (get_real_problems_skip_cache ())
-    | ["--get_real_problems"; "--use_cache"] ->
-        print_string (get_real_problems_from_cache ())
+        ignore (List.map (fun x -> print_string (problem_to_string x)) (get_real_problems ()))
+    | "--get_real_problems"::filter_args ->
+        ignore (List.map (fun x -> print_string (problem_to_string x)) (get_real_problems_and_filter (parse_problem_filters filter_args)))
     | ["--get_training_problem"] ->
         print_string (problem_to_string (get_training_problem 3))
     | ["--get_training_problem"; int_string] ->
