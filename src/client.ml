@@ -209,6 +209,12 @@ let solve_problem problem =
     | QuitSolving  -> exit 0
 ;;
 
+let solve_problem_no_confirm problem =
+  print_endline "Candidate problem:\n";
+  print_endline (problem_to_string problem);
+  run_problem_solver problem 10
+;;
+
 let main () =
   match (command_line_args ()) with
     [] -> training_solver 10 5
@@ -232,6 +238,8 @@ let main () =
       print_string (problem_to_string (get_training_problem_with_tfold (int_of_string int_string)))
   | "--solve_real_problems"::filter_args ->
       ignore (List.map solve_problem (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
+  | "--solve_real_problems!!!"::filter_args ->
+      ignore (List.map solve_problem_no_confirm (get_real_problems_and_filter (parse_problem_filters ("--unsolved"::filter_args))))
   | ["--reproduce_crash"] ->
       solve_problem test_problem
   | _ ->
