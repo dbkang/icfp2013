@@ -116,9 +116,9 @@ let rec send_post post_url post_body =
 ;;
 
 let problem_size n = "{\"size\": " ^ (string_of_int n) ^ "}";;
-let problem_size_no_folds n = "{\"size\": " ^ (string_of_int n) ^ ", operators: []}";;
-let problem_size_fold n = "{\"size\": " ^ (string_of_int n) ^ ", operators: [\"fold\"]}";;
-let problem_size_tfold n = "{\"size\": " ^ (string_of_int n) ^ ", operators: [\"tfold\"]}";;
+let problem_size_no_folds n = "{\"size\": " ^ (string_of_int n) ^ ", \"operators\": []}";;
+let problem_size_fold n = "{\"size\": " ^ (string_of_int n) ^ ", \"operators\": [\"fold\"]}";;
+let problem_size_tfold n = "{\"size\": " ^ (string_of_int n) ^ ", \"operators\": [\"tfold\"]}";;
 
 let add_to_operator_set op_string operator_set =
   match op_string with
