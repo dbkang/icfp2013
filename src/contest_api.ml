@@ -10,6 +10,7 @@
 open Bv;;
 open Http_client;;
 open String;;
+open Unix;;
 open Yojson.Safe;;
 
 (* Constants *)
@@ -88,12 +89,17 @@ let read_string_from_file filename =
   input_line (open_in filename)
 ;;
 
-let send_post post_url post_body =
+let rec send_post post_url post_body =
   let pipeline = new pipeline in
   let post_op = new Http_client.post_raw post_url post_body in
     pipeline#add(post_op);
     pipeline#run();
-    post_op#get_resp_body()
+    match post_op#response_status_code with
+        200 -> post_op#get_resp_body()
+      | 429 -> print_endline("HTTP POST hit rate limit.  Retrying in 5 seconds.");
+               Unix.sleep 5;
+               send_post post_url post_body
+      | error_code -> failwith ("HTTP POST failed, error code = " ^ (string_of_int error_code))
 ;;
 
 let problem_size n = "{\"size\": " ^ (string_of_int n) ^ "}";;
