@@ -121,7 +121,7 @@ let main () =
         print_newline ();
         List.iter (fun p -> print_string (program_to_string p); print_newline ()) solution;
     | ["--get_real_problems"] ->
-        List.map (fun x -> print_string (problem_to_string x)) (parse_myproblems (get_real_problems ()));
+        ignore (List.map (fun x -> print_string (problem_to_string x)) (parse_myproblems (get_real_problems ())));
         print_string ""
     | ["--get_real_problems"; "--no_cache"] ->
         print_string (get_real_problems_skip_cache ())
