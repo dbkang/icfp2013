@@ -1,6 +1,4 @@
-(* I've only been able to run this in an interactive shell so 
-   far.  To load this in the interactive shell, run these
-   commands:
+(* To load this in the interactive shell, delete the "open Bv;;" line and run:
 
        #use "topfind";;
        #require "netclient";;
@@ -27,7 +25,7 @@ type oper = Oper1 of op1 | Oper2 of op2 | If0 | Fold | TFold;;
 
 type operator_set = {op1: op1 list; op2: op2 list; if0: bool; fold: bool; tfold: bool; bonus: bool};;
 
-type problem = {id: problem_id; size: int; operators: operator_set; solution: string};;
+type problem = {id: problem_id; size: int; operators: operator_set; solution: string; solved: bool};;
 
 type guess_response = Win | Mismatch of int64 * int64 * int64 | Error of string
 
@@ -57,8 +55,9 @@ let problem_to_string problem =
   ^ "  id:        " ^ problem.id ^ "\n"
   ^ "  size:      " ^ (string_of_int problem.size) ^ "\n"
   ^ "  operators: " ^ (operator_set_to_string problem.operators) ^ "\n"
-  ^ "  bonus:     " ^ (string_of_bool problem.operators.bonus) ^ "\n"
+  ^ (match problem.operators.bonus with false -> "" | true -> "  bonus:     true\n")
   ^ (match problem.solution with "" -> "" | solution -> "  solution:  " ^ solution ^ "\n")
+  ^ (match problem.solved with false -> "" | true -> "  solved:    true\n")
   ^ "}\n"
 ;;
 
@@ -137,7 +136,13 @@ let rec parse_operator_set op_list =
     | _ -> invalid_arg "The problem definition's operator list contains an item that does not match (`String _)."
 ;;
 
-type problem_property = ProblemId of string | ProblemSize of int | ProblemOperators of operator_set | ProblemSolution of string | None;;
+type problem_property =
+    ProblemId of string
+  | ProblemSize of int
+  | ProblemOperators of operator_set
+  | ProblemSolution of string
+  | ProblemSolved of bool
+  | None;;
 
 let parse_problem_json problem =
   let parse_problem_property property =
@@ -146,16 +151,18 @@ let parse_problem_json problem =
       | ("size", `Int size) -> ProblemSize size
       | ("operators", `List operators) -> ProblemOperators (parse_operator_set operators)
       | ("challenge", `String solution) -> ProblemSolution solution
+      | ("solved", `Bool solved) -> ProblemSolved solved
       | _ -> None in
   let parse_problem_property_list prop_list =
     let rec iter specs property =
       match (parse_problem_property property) with
-          ProblemId id -> {id = id; size = specs.size; operators = specs.operators; solution = specs.solution}
-        | ProblemSize size -> {id = specs.id; size = size; operators = specs.operators; solution = specs.solution}
-        | ProblemOperators ops -> {id = specs.id; size = specs.size; operators = ops; solution = specs.solution}
-        | ProblemSolution solution -> {id = specs.id; size = specs.size; operators = specs.operators; solution = solution}
+          ProblemId id -> {id = id; size = specs.size; operators = specs.operators; solution = specs.solution; solved = specs.solved}
+        | ProblemSize size -> {id = specs.id; size = size; operators = specs.operators; solution = specs.solution; solved = specs.solved}
+        | ProblemOperators ops -> {id = specs.id; size = specs.size; operators = ops; solution = specs.solution; solved = specs.solved}
+        | ProblemSolution solution -> {id = specs.id; size = specs.size; operators = specs.operators; solution = solution; solved = specs.solved}
+        | ProblemSolved solved -> {id = specs.id; size = specs.size; operators = specs.operators; solution = specs.solution; solved = solved}
         | None -> specs in
-    List.fold_left iter {id = "-1"; size = -1; operators = empty_operator_set; solution = ""} prop_list in
+    List.fold_left iter {id = "-1"; size = -1; operators = empty_operator_set; solution = ""; solved = false} prop_list in
     match problem with
       `Assoc problem_spec -> parse_problem_property_list problem_spec
     | _ -> invalid_arg "Problem definition is not properly formatted."
@@ -192,19 +199,25 @@ let get_training_problem size =
 ;;
 
 let get_real_problems_from_cache () =
-  read_string_from_file myproblems_cache_filename
+  parse_myproblems (read_string_from_file myproblems_cache_filename)
 ;;
 
 let get_real_problems_skip_cache () =
   let myproblems_string = (send_post myproblems_post_url "") in
     write_string_to_file myproblems_string myproblems_cache_filename;
-    myproblems_string
+    (parse_myproblems myproblems_string)
 ;;
 
 let get_real_problems () =
   match (Sys.file_exists myproblems_cache_filename) with
       true -> (get_real_problems_from_cache ())
     | false -> (get_real_problems_skip_cache ())
+;;
+
+let get_real_problems_and_filter filter_fn =
+  match (Sys.file_exists myproblems_cache_filename) with
+      true -> (List.filter filter_fn (get_real_problems_from_cache ()))
+    | false -> (List.filter filter_fn (get_real_problems_skip_cache ()))
 ;;
 
 let evaluate problem_id inputs =
