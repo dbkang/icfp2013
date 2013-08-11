@@ -116,6 +116,9 @@ let rec send_post post_url post_body =
 ;;
 
 let problem_size n = "{\"size\": " ^ (string_of_int n) ^ "}";;
+let problem_size_no_folds n = "{\"size\": " ^ (string_of_int n) ^ ", operators: []}";;
+let problem_size_fold n = "{\"size\": " ^ (string_of_int n) ^ ", operators: [\"fold\"]}";;
+let problem_size_tfold n = "{\"size\": " ^ (string_of_int n) ^ ", operators: [\"tfold\"]}";;
 
 let add_to_operator_set op_string operator_set =
   match op_string with
@@ -230,6 +233,18 @@ let guess_post_body problem_id program =
 
 let get_training_problem size =
   parse_problem(send_post train_post_url (problem_size size))
+;;
+
+let get_training_problem_without_folds size =
+  parse_problem(send_post train_post_url (problem_size_no_folds size))
+;;
+
+let get_training_problem_with_fold size =
+  parse_problem(send_post train_post_url (problem_size_fold size))
+;;
+
+let get_training_problem_with_tfold size =
+  parse_problem(send_post train_post_url (problem_size_tfold size))
 ;;
 
 let get_real_problems_from_cache () =
