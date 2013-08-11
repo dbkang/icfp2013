@@ -197,17 +197,17 @@ let gen_pseudo size if0 fold tfold =
           op2es_calc_partial n (List.hd if0n) (List.nth if0n 1) (List.hd foldn) (List.nth foldn 1))
            (if0_dist if0 2) (fold_dist fold 2)) in
     
-    let op3es_calc_partial f n ids if01 if02 if03 fold1 fold2 fold3 =
+    let op3es_calc_partial f n ids1 ids2 if01 if02 if03 fold1 fold2 fold3 =
       List.concat (List.map (fun (n1, n2, n3) ->
         map_product3 f
-          (gen_expr n1 ids if01 fold1)
-          (gen_expr n2 ids if02 fold2)
-          (gen_expr n3 ids if03 fold3)) (tri_dist n)) in
+          (gen_expr n1 ids1 if01 fold1)
+          (gen_expr n2 ids1 if02 fold2)
+          (gen_expr n3 ids2 if03 fold3)) (tri_dist n)) in
     
-    let op3es_calc f n ids if0 fold = List.concat
+    let op3es_calc f n ids1 ids2 if0 fold = List.concat
         (map_product (fun if0n foldn ->
           let (if0ni, foldni) = (List.nth if0n, List.nth foldn) in
-          op3es_calc_partial f n ids (if0ni 0) (if0ni 1) (if0ni 2) (foldni 0) (foldni 1) (foldni 2))
+          op3es_calc_partial f n ids1 ids2 (if0ni 0) (if0ni 1) (if0ni 2) (foldni 0) (foldni 1) (foldni 2))
            (if0_dist if0 3) (fold_dist fold 3)) in
         
     let if0_gen e1 e2 e3 = If0(e1, e2, e3) in
@@ -219,24 +219,24 @@ let gen_pseudo size if0 fold tfold =
     | (3, false, false) -> List.append (op1es_calc 2) (op2es_calc 2)
     | ((1 | 2 | 3), _, _) -> []
     | (4, _, true) -> []
-    | (4, true, _) -> op3es_calc if0_gen 3 ids false false
+    | (4, true, _) -> op3es_calc if0_gen 3 ids ids false false
     | (4, false, false) -> List.append (op1es_calc 3) (op2es_calc 3)
     | (5, true, true) -> []
     | (5, false, true) ->
-        List.append (op3es_calc (fold_gen id1 id2) 3 [id1;id2] false false)
-          (op3es_calc (fold_gen id2 id3) 3 (id2::id3::ids) false false)
+        List.append (op3es_calc (fold_gen id1 id2) 3 ids [id1;id2] false false)
+          (op3es_calc (fold_gen id2 id3) 3 ids [id1;id2;id3] false false)
     | (5, if0, false) ->  List.concat [(op1es_calc 4);
                                        (op2es_calc 4);
-                                       if if0 then (op3es_calc if0_gen 4 ids false false) else []]
+                                       if if0 then (op3es_calc if0_gen 4 ids ids false false) else []]
     | (n, if0, fold) ->
         List.concat [(op1es_calc (n - 1));
                      (op2es_calc (n - 1));
                      if if0 then
-                       List.append (op3es_calc if0_gen (n - 1) ids true fold)
-                         (op3es_calc if0_gen (n - 1) ids false fold)
+                       List.append (op3es_calc if0_gen (n - 1) ids ids true fold)
+                         (op3es_calc if0_gen (n - 1) ids ids false fold)
                      else [];
-                     if fold then (op3es_calc (fold_gen id1 id2) (n - 2) [id1;id2] if0 false) else [];
-                     if fold then (op3es_calc (fold_gen id2 id3) (n - 2) (id2::id3::ids) if0 false) else []]
+                     if fold then (op3es_calc (fold_gen id1 id2) (n - 2) ids [id1;id2] if0 false) else [];
+                     if fold then (op3es_calc (fold_gen id2 id3) (n - 2) ids [id1;id2;id3] if0 false) else []]
   in if tfold then
     List.map (fun e -> Program(id1, Fold(ID(id1), Zero, id1, id2, e)))
       (gen_expr (size - 5) [id1; id2] if0 false)
