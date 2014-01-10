@@ -13,3 +13,6 @@ Contest task and other information are available at:
 
 http://icfpc2013.cloudapp.net/
 
+More information on ICFP Programming Contest and its history:
+
+http://en.wikipedia.org/wiki/ICFP_Programming_Contest
