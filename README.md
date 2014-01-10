@@ -1,8 +1,8 @@
 2013 ICFP Programming Contest Entry by DKMB (Dan Kang & Mark Barolak)
 ===========
 
-This repository has the misleading name of ocamlclient because it was used during a live
-contest (not that anyone would copy us) as a public repository.
+This repository once had the misleading name of ocamlclient because it was used during a
+live contest (not that anyone would copy us) as a public repository.
 
 We scored 939 / 1420 on the original problem set, but didn't get to the bonus problems.
 This score ranked somewhere between 50th (~1100) and 75th (904) among at least 522
